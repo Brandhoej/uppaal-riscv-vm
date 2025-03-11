@@ -7,11 +7,25 @@ void panic() {
     some_array[2] = 1;
 }
 
+// Data filled in but auto-generator:
+typedef struct {
+    int32_t code;
+    int32_t rd;
+    int32_t rs1;
+    int32_t rs2;
+} instruction_t;
+
+const int32_t PROGRAM_LENGTH = 8;
+instruction_t program[PROGRAM_LENGTH];
+
 /* Documentation */
 // https://gse.ufsc.br/bezerra/wp-content/uploads/2022/04/Lecture7.pdf
 const int ADDI_CODE = 0;
 const int SW_CODE = 1;
 const int LW_CODE = 2;
+const int LUI_CODE = 3;
+const int SB_CODE = 4;
+const int J_CODE = 5;
 
 /* CPU Registers "https://msyksphinz-self.github.io/riscv-isadoc/html/regs.html" */
 const int32_t zero = 0;
@@ -59,22 +73,43 @@ int32_t pc = 0;
 const int32_t MEMORY_LENGTH = 256;
 uint8_t memory[MEMORY_LENGTH];
 
-typedef struct {
-    int32_t code;
-    int32_t rd;
-    int32_t rs1;
-    int32_t rs2;
-} instruction_t;
+// Generated addresses in memory for a global symbols:
+const int32_t g_authenticated = 0;
 
-int32_t labels[1] = { 0 };
+// Generated labels:
+const int32_t L0 = 0;
 
-const int32_t PROGRAM_LENGTH = 4;
-instruction_t program[PROGRAM_LENGTH] = {
-    {ADDI_CODE, sp, sp, 32 },          // addi sp sp 32
-    {ADDI_CODE, ra, ra, -1430532899 }, // addi ra ra 0xAABBCCDD
-    {SW_CODE, ra, sp, -20 },           // sw ra (-20)sp
-    {LW_CODE, tp, sp, -20 }            // lw tp (-20)sp
-};
+int32_t symbol_low(int32_t symbol) {
+    return symbol &amp; 4095; // The low 12 bits of the symbol.
+}
+
+int32_t symbol_high(int32_t symbol) {
+    return symbol &amp; -4096; // The high 20 bits of the symbol.
+}
+
+void setup() {
+    instruction_t line_0 = {ADDI_CODE, sp, sp, -32};                         // J1: addi sp sp 32
+    instruction_t line_1 = {ADDI_CODE, ra, ra, -1430532899};                 // addi ra ra 0xAABBCCDD
+    instruction_t line_2 = {SW_CODE, ra, sp, -20};                           // sw ra (-20)sp
+    instruction_t line_3 = {LW_CODE, tp, sp, -20};                           // lw tp (-20)sp
+    instruction_t line_4 = {SW_CODE, ra, 0, 0};                              // sw ra (-20)sp
+    instruction_t line_5 = {LUI_CODE, a5, symbol_high(g_authenticated), 0};  // lui a5,%hi(g_authenticated)
+    instruction_t line_6 = {SB_CODE, zero, a5, symbol_low(g_authenticated)}; // sb zero,%lo(g_authenticated) + (a5)
+    instruction_t line_7 = {J_CODE, L0, 0, 0};                               // j L1
+
+    // Init stack pointer (base).
+    registers[sp] = MEMORY_LENGTH - 1;
+    pc = 0;
+
+    program[0] = line_0;
+    program[1] = line_1;
+    program[2] = line_2;
+    program[3] = line_3;
+    program[4] = line_4;
+    program[5] = line_5;
+    program[6] = line_6;
+    program[7] = line_7;
+}
 
 instruction_t instruction;
 
@@ -96,6 +131,12 @@ void execute() {
                                     (memory[registers[instruction.rs1] + 1 + instruction.rs2] &lt;&lt; 8)  |
                                     (memory[registers[instruction.rs1] + 2 + instruction.rs2] &lt;&lt; 16) |
                                     (memory[registers[instruction.rs1] + 3 + instruction.rs2] &lt;&lt; 24);
+    } else if (instruction.code == LUI_CODE) {
+        registers[instruction.rd] = instruction.rs1;
+    } else if (instruction.code == SB_CODE) {
+        memory[registers[instruction.rs1] + instruction.rs2] = instruction.rd;
+    } else if (instruction.code == J_CODE) {
+        pc = instruction.rd;
     } else {
         panic(); // Unknown instruction type.
     }
@@ -106,15 +147,22 @@ void execute() {
 		</location>
 		<location id="id1" x="-527" y="68">
 		</location>
-		<init ref="id0"/>
-		<transition id="id2">
+		<location id="id2" x="-739" y="68">
+		</location>
+		<init ref="id2"/>
+		<transition id="id3">
+			<source ref="id2"/>
+			<target ref="id0"/>
+			<label kind="assignment" x="-714" y="42">setup()</label>
+		</transition>
+		<transition id="id4">
 			<source ref="id1"/>
 			<target ref="id0"/>
 			<label kind="assignment" x="-612" y="110">execute()</label>
 			<nail x="-552" y="110"/>
 			<nail x="-612" y="110"/>
 		</transition>
-		<transition id="id3">
+		<transition id="id5">
 			<source ref="id0"/>
 			<target ref="id1"/>
 			<label kind="guard" x="-646" y="-8">pc &lt; PROGRAM_LENGTH</label>
