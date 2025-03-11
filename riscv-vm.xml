@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
+<nta>
+	<declaration>/* error detection */
+int8_t some_array[1] = { 0 };
+void panic() {
+    some_array[2] = 1;
+}
+
+/* Documentation */
+// https://gse.ufsc.br/bezerra/wp-content/uploads/2022/04/Lecture7.pdf
+const int ADDI_CODE = 0;
+const int SW_CODE = 1;
+const int LW_CODE = 2;
+
+/* CPU Registers "https://msyksphinz-self.github.io/riscv-isadoc/html/regs.html" */
+const int32_t zero = 0;
+const int32_t ra = 1;
+const int32_t sp = 2;
+const int32_t gp = 3;
+const int32_t tp = 4;
+const int32_t t0 = 5;
+const int32_t t1 = 6;
+const int32_t t2 = 7;
+const int32_t s0 = 8;
+const int32_t s1 = 9;
+const int32_t a0 = 10;
+const int32_t a1 = 11;
+const int32_t a2 = 12;
+const int32_t a3 = 13;
+const int32_t a4 = 14;
+const int32_t a5 = 15;
+const int32_t a6 = 16;
+const int32_t a7 = 17;
+const int32_t s2 = 18;
+const int32_t s3 = 19;
+const int32_t s4 = 20;
+const int32_t s5 = 21;
+const int32_t s6 = 22;
+const int32_t s7 = 23;
+const int32_t s8 = 24;
+const int32_t s9 = 25;
+const int32_t s10 = 26;
+const int32_t s11 = 27;
+const int32_t t3 = 28;
+const int32_t t4 = 29;
+const int32_t t5 = 30;
+const int32_t t6 = 31;
+int32_t registers[32];
+
+// The program counter (PC) to keep track of which instruction to execute.
+int32_t pc = 0;
+
+// The memory available to the program.
+// Data: This includes global variables and static variables. 
+// Heap: The heap grows upward (toward higher memory addresses) as dynamic memory allocations (e.g., malloc in C) occur. The heap starts right after the global/static data section.
+// Stack: The stack grows downward (toward lower memory addresses). It is typically placed at the top of the memory space and moves down as functions call and allocate local variables.
+// Ergo. the stack starts at the greatest index. The data starts at the smallest index. The heap starts right after the data.
+const int32_t MEMORY_LENGTH = 256;
+uint8_t memory[MEMORY_LENGTH];
+
+typedef struct {
+    int32_t code;
+    int32_t rd;
+    int32_t rs1;
+    int32_t rs2;
+} instruction_t;
+
+int32_t labels[1] = { 0 };
+
+const int32_t PROGRAM_LENGTH = 4;
+instruction_t program[PROGRAM_LENGTH] = {
+    {ADDI_CODE, sp, sp, 32 },          // addi sp sp 32
+    {ADDI_CODE, ra, ra, -1430532899 }, // addi ra ra 0xAABBCCDD
+    {SW_CODE, ra, sp, -20 },           // sw ra (-20)sp
+    {LW_CODE, tp, sp, -20 }            // lw tp (-20)sp
+};
+
+instruction_t instruction;
+
+void fetch() {
+    instruction = program[pc];
+    pc += 1;
+}
+
+void execute() {
+    if (instruction.code == ADDI_CODE) {
+        registers[instruction.rd] = registers[instruction.rs1] + instruction.rs2;
+    } else if (instruction.code == SW_CODE) {
+        memory[registers[instruction.rs1] + 0 + instruction.rs2] = (registers[instruction.rd] &gt;&gt; 0)  &amp; 255;
+        memory[registers[instruction.rs1] + 1 + instruction.rs2] = (registers[instruction.rd] &gt;&gt; 8)  &amp; 255;
+        memory[registers[instruction.rs1] + 2 + instruction.rs2] = (registers[instruction.rd] &gt;&gt; 16) &amp; 255;
+        memory[registers[instruction.rs1] + 3 + instruction.rs2] = (registers[instruction.rd] &gt;&gt; 24) &amp; 255;
+    } else if (instruction.code == LW_CODE) {
+        registers[instruction.rd] = (memory[registers[instruction.rs1] + 0 + instruction.rs2] &lt;&lt; 0)  |
+                                    (memory[registers[instruction.rs1] + 1 + instruction.rs2] &lt;&lt; 8)  |
+                                    (memory[registers[instruction.rs1] + 2 + instruction.rs2] &lt;&lt; 16) |
+                                    (memory[registers[instruction.rs1] + 3 + instruction.rs2] &lt;&lt; 24);
+    } else {
+        panic(); // Unknown instruction type.
+    }
+}</declaration>
+	<template>
+		<name x="5" y="5">VM</name>
+		<location id="id0" x="-629" y="68">
+		</location>
+		<location id="id1" x="-527" y="68">
+		</location>
+		<init ref="id0"/>
+		<transition id="id2">
+			<source ref="id1"/>
+			<target ref="id0"/>
+			<label kind="assignment" x="-612" y="110">execute()</label>
+			<nail x="-552" y="110"/>
+			<nail x="-612" y="110"/>
+		</transition>
+		<transition id="id3">
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-646" y="-8">pc &lt; PROGRAM_LENGTH</label>
+			<label kind="assignment" x="-612" y="8">fetch()</label>
+			<nail x="-603" y="34"/>
+			<nail x="-552" y="34"/>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+vm = VM();
+// List one or more processes to be composed into a system.
+system vm;
+</system>
+	<queries>
+		<query>
+			<formula/>
+			<comment>// Just to make sure that the VM does not have any internal logic errors.</comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt; !vm.test_failure</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2025-03-10 19:08:01 +0100">
+			</result>
+		</query>
+	</queries>
+</nta>
