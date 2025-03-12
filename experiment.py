@@ -4,6 +4,12 @@ import re
 
 from typing import Dict, List, Tuple, Optional
 
+def as_integer(string: str) -> Optional[int]:
+    try:
+        return int(string)
+    except ValueError:
+        return None
+
 class RISCVProgram:
     __symbols: List[Tuple[str, int, str]]
     """Dictionary mapping global symbol identifiers to memory offsets and size.
@@ -124,10 +130,10 @@ class RISCVProgram:
         with open(template) as file:
             content = file.read()
 
-        content.replace('/* GENERATED: LABELS */', self.generated_labels() + '\n')
-        content.replace('/* GENERATED: GLOBAL SYMBOLS */', self.generated_global_symbols() + '\n')
-        content.replace('/* GENERATED: PROGRAM LENGTH */', self.generated_program_length() + '\n')
-        content.replace('/* GENERATED: PROGRAM */', self.generated_program() + '\n')
+        content = content.replace('/* GENERATED: LABELS */', self.generated_labels() + '\n')
+        content = content.replace('/* GENERATED: GLOBAL SYMBOLS */', self.generated_global_symbols() + '\n')
+        content = content.replace('/* GENERATED: PROGRAM LENGTH */', self.generated_program_length() + '\n')
+        content = content.replace('/* GENERATED: PROGRAM */', self.generated_program() + '\n')
 
         with open(template, 'w') as file:
             file.write(content)
@@ -191,37 +197,34 @@ class RISCVProgram:
         # And also seperates the non grouped in an element in the array.
         pattern = r"\(?([+-]?\d+|[a-zA-Z_]\w*)\)?"
 
+        operands = []
         if operand.startswith('%hi'):
             operand = operand.removeprefix('%hi')
-            groups = re.findall(pattern, operand)
-            groups[0] = f'symbol_high({groups[0]})'
-            groups.reverse()
-
-            for (i, group) in enumerate(groups):
-                groups[i] = group.removeprefix('.')
-
-            return groups
+            operands = re.findall(pattern, operand)
+            operands[0] = f'symbol_high({operands[0]})'
+            operands.reverse()
         elif operand.startswith('%lo'):
             operand = operand.removeprefix('%lo')
-            groups = re.findall(pattern, operand)
-            groups[0] = f'symbol_low({groups[0]})'
-            groups.reverse()
-
-            for (i, group) in enumerate(groups):
-                groups[i] = group.removeprefix('.')
-
-            return groups
+            operands = re.findall(pattern, operand)
+            operands[0] = f'symbol_low({operands[0]})'
+            operands.reverse()
         elif operand.startswith('(') or operand.endswith(')'):
-            groups = re.findall(pattern, operand)
-            groups.reverse()
+            operands = re.findall(pattern, operand)
+            operands.reverse()
+        else:
+            operands = [operand]
 
-            for (i, group) in enumerate(groups):
-                groups[i] = group.removeprefix('.')
+        for (i, operand) in enumerate(operands):
+            # Remove '.' which is prefixes for label operands.
+            operands[i] = operand.removeprefix('.')
 
-            return groups
+            # Some operands are hexadecimals.
+            integer = as_integer(operand)
+            if integer is not None:
+                operands[i] = integer
 
-        operand = operand.removeprefix('.')
-        return [operand]
+
+        return operands
 
     @staticmethod
     def parse_operands(values: List[str]) -> Tuple[str, str, str]:
@@ -350,8 +353,6 @@ def main():
     parser = argparse.ArgumentParser(
         description="This script processes a RISC-V assembly file and generates an Uppaal model."
     )
-
-    RISCVProgram.__symbols
     
     parser.add_argument(
         "file", type=str,

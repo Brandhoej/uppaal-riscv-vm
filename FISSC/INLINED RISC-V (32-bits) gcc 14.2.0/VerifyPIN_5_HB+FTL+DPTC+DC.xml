@@ -1,0 +1,599 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
+<nta>
+	<declaration>/* error detection */
+int8_t some_array[1] = { 0 };
+void panic() { some_array[2] = 1; }
+void todo() { panic(); }
+
+/* Potential known problems:
+ * 1. "add" and "addi" (most likely more) allows overflow
+ *        which we currently do not. This may cause some issues in the future.
+ * 2. All operations are implemented with signed extensions which may cause
+ *        unintential side-effects when unsigned arithmetic should be used
+ */
+
+// Data filled in but auto-generator:
+typedef struct {
+    int32_t code;
+    // Mostly always the "rd" register.
+    int32_t op1;
+    int32_t op2;
+    // Mostly always an offset.
+    int32_t op3;
+} instruction_t;
+
+// The memory available to the program.
+// Data: This includes global variables and static variables. 
+// Heap: The heap grows upward (toward higher memory addresses) as dynamic
+//    memory allocations (e.g., malloc in C) occur.
+//     The heap starts right after the global/static data section.
+// Stack: The stack grows downward (toward lower memory addresses). It is typically placed at the
+//    top of the memory space and moves down as functions call and allocate local variables.
+// Ergo. the stack starts at the greatest index. The data starts at
+//    the smallest index. The heap starts right after the data.
+const int32_t MEMORY_LENGTH = 256;
+typedef int[0, MEMORY_LENGTH] address_t;
+uint8_t memory[MEMORY_LENGTH];
+
+const int32_t PROGRAM_LENGTH = 139;
+
+instruction_t program[PROGRAM_LENGTH];
+
+// The program counter (PC) to keep track of which instruction to execute.
+typedef int[0, PROGRAM_LENGTH] pc_t;
+pc_t pc = 0;
+
+const pc_t verifyPIN = 0;
+const pc_t L5 = 33;
+const pc_t L4 = 44;
+const pc_t L3 = 47;
+const pc_t L6 = 57;
+const pc_t L7 = 63;
+const pc_t L8 = 65;
+const pc_t L12 = 84;
+const pc_t L11 = 95;
+const pc_t L10 = 98;
+const pc_t L13 = 108;
+const pc_t L14 = 114;
+const pc_t L15 = 116;
+const pc_t L17 = 129;
+const pc_t L2 = 133;
+const pc_t L18 = 134;
+
+const address_t g_countermeasure = 0;
+const address_t g_ptc = 1;
+const address_t g_authenticated = 2;
+const address_t g_userPin = 3;
+const address_t g_cardPin = 7;
+
+
+/* Documentation */
+// https://gse.ufsc.br/bezerra/wp-content/uploads/2022/04/Lecture7.pdf
+// https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/notebooks/RISCV/RISCV_CARD.pdf
+typedef int[0, 20] opcode_t;
+const opcode_t ADDI_CODE = 0;
+const opcode_t   SW_CODE = 1;
+const opcode_t   LW_CODE = 2;
+const opcode_t  LUI_CODE = 3;
+const opcode_t   SB_CODE = 4;
+const opcode_t    J_CODE = 5;  // Pseudo-instruction. We assume that it is always to a lable (op3).
+const opcode_t   LI_CODE = 6;  // Pseudo-instruction.
+const opcode_t   LB_CODE = 7;
+const opcode_t  BLE_CODE = 8;  // Pseudo-instruction. We assume that it is always to a lable (op3).
+const opcode_t  BEQ_CODE = 9;  // We assume that it is always to a lable (op3).
+const opcode_t  NOP_CODE = 10;
+const opcode_t ANDI_CODE = 11;
+const opcode_t SLLI_CODE = 12;
+const opcode_t SRAI_CODE = 13;
+const opcode_t  ADD_CODE = 14;
+const opcode_t  LBU_CODE = 15;
+const opcode_t  BNE_CODE = 16;
+const opcode_t   MV_CODE = 17; // Pseudo-instruction.
+const opcode_t   JR_CODE = 18; // Pseudo-instruction.
+const opcode_t SEQZ_CODE = 19; // Pseudo-instruction.
+const opcode_t  BLT_CODE = 20; // We assume that it is always to a lable (op3).
+
+/* CPU Registers "https://msyksphinz-self.github.io/riscv-isadoc/html/regs.html" */
+typedef int[0, 31] register_t;
+const register_t zero = 0;
+const register_t ra = 1;
+const register_t sp = 2;
+const register_t gp = 3;
+const register_t tp = 4;
+const register_t t0 = 5;
+const register_t t1 = 6;
+const register_t t2 = 7;
+const register_t s0 = 8;
+const register_t s1 = 9;
+const register_t a0 = 10;
+const register_t a1 = 11;
+const register_t a2 = 12;
+const register_t a3 = 13;
+const register_t a4 = 14;
+const register_t a5 = 15;
+const register_t a6 = 16;
+const register_t a7 = 17;
+const register_t s2 = 18;
+const register_t s3 = 19;
+const register_t s4 = 20;
+const register_t s5 = 21;
+const register_t s6 = 22;
+const register_t s7 = 23;
+const register_t s8 = 24;
+const register_t s9 = 25;
+const register_t s10 = 26;
+const register_t s11 = 27;
+const register_t t3 = 28;
+const register_t t4 = 29;
+const register_t t5 = 30;
+const register_t t6 = 31;
+int32_t registers[32];
+
+int32_t symbol_low(int32_t symbol) {
+    return symbol &amp; 4095; // The low 12 bits of the symbol.
+}
+
+int32_t symbol_high(int32_t symbol) {
+    return symbol &amp; -4096; // The high 20 bits of the symbol.
+}
+
+instruction_t instruction;
+
+void fetch() {
+    instruction = program[pc];
+    pc += 1;
+}
+
+void execute() {
+    if (instruction.code == ADDI_CODE) {
+        // Implementation: reg[op1] = reg[op2] + op3
+        // Example: "addi a5,a4,1" op1=a5 op2=a4 op3=1
+        registers[instruction.op1] = registers[instruction.op2] + instruction.op3;
+    } else if (instruction.code == SW_CODE) {
+        // Implementation: mem[reg[op2] + op3] = reg[op1]
+        // Example: "sw a5,-20(s0)" op1=a5 op2=s0 op3=-20
+        memory[registers[instruction.op2] + 0 + instruction.op3] = (registers[instruction.op1] &gt;&gt; 0)  &amp; 255;
+        memory[registers[instruction.op2] + 1 + instruction.op3] = (registers[instruction.op1] &gt;&gt; 8)  &amp; 255;
+        memory[registers[instruction.op2] + 2 + instruction.op3] = (registers[instruction.op1] &gt;&gt; 16) &amp; 255;
+        memory[registers[instruction.op2] + 3 + instruction.op3] = (registers[instruction.op1] &gt;&gt; 24) &amp; 255;
+    } else if (instruction.code == LW_CODE) {
+        // Implementation: reg[op1] = mem[reg[op2] + op3]
+        // Example: "lw a5,-24(s0)" op1=a5 op2=s0 op3=-24
+        registers[instruction.op1] = (memory[registers[instruction.op2] + 0 + instruction.op3] &lt;&lt; 0)  |
+                                     (memory[registers[instruction.op2] + 1 + instruction.op3] &lt;&lt; 8)  |
+                                     (memory[registers[instruction.op2] + 2 + instruction.op3] &lt;&lt; 16) |
+                                     (memory[registers[instruction.op2] + 3 + instruction.op3] &lt;&lt; 24);
+    } else if (instruction.code == LUI_CODE) {
+        // Implementation: reg[op1] = op2
+        // Example: "lui a5,%hi(g_ptc)" op1=a5 op2=symbol_high(g_ptc)
+        registers[instruction.op1] = instruction.op2;
+    } else if (instruction.code == SB_CODE) {
+        // Implementation: mem[reg[op2] + op3 = op1
+        // Example: "a4,%lo(g_ptc)(a5)" op1=a4 op2=a5 op3=symbol_low(g_ptc)
+        memory[registers[instruction.op2] + instruction.op3] = instruction.op1;
+    } else if (instruction.code == J_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: pc = lab[op1]
+        // Example: "j .L6" op1=L6
+        // We assume that the labels point directly to the pc to jump to.
+        pc = instruction.op1;
+    } else if (instruction.code == LI_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: reg[op1] = op2
+        // Example: "li a5,85" op1=a5 op2=85
+        registers[instruction.op1] = instruction.op2;
+    } else if (instruction.code == LB_CODE) {
+        // Implementation: reg[op1] = mem[reg[op2] + op3]
+        // Example: "a5,%lo(g_ptc)(a5)" op1=a5 op2=a5 op3=symbol_low(g_ptc)
+        registers[instruction.op1] = memory[registers[instruction.op2] + instruction.op3];
+    } else if (instruction.code == BLE_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: if reg[op1] &lt; reg[op2] then pc = lab[op3]
+        // Example: "ble a4,a5,.L9" op1=a4 op2=a5 op3=L9
+        if (registers[instruction.op1] &lt; registers[instruction.op2]) {
+            // We assume that the labels point directly to the pc to jump to.
+            pc = instruction.op3;
+        }
+    } else if (instruction.code == BEQ_CODE) {
+        // Implementation: if reg[op1] = reg[op2] then pc = lab[op3]
+        // Example: "beq a4,a5,.L3" op1=a4 op2=a5 op3=L3
+        if (registers[instruction.op1] == registers[instruction.op2]) {
+            // We assume that the labels point directly to the pc to jump to.
+            pc = instruction.op3;
+        }
+    } else if (instruction.code == NOP_CODE) {
+        // Implementation: zzzZZZ
+        // Example: "nop"
+    } else if (instruction.code == ANDI_CODE) {
+        // Implementation: reg[op1] = reg[op2] &amp; op3
+        // Example: "andi a5,a3,0xff" op1=a5 op2=a3 op3=0xff
+        registers[instruction.op1] = registers[instruction.op2] &amp; instruction.op3;
+    } else if (instruction.code == SLLI_CODE) {
+        // Implementation: reg[op1] = reg[op2] &lt;&lt; op3
+        // Example: "slli a4,a5,24" op1=a4 op2=a5 op3=24
+        registers[instruction.op1] = registers[instruction.op2] &lt;&lt; instruction.op3;
+    } else if (instruction.code == SRAI_CODE) {
+        // Implementation: reg[op1] = reg[op2] &gt;&gt; op3
+        // Example: "srai a4,a2,24" op1=a4 op2=a2 op3=24
+        registers[instruction.op1] = registers[instruction.op2] &gt;&gt; instruction.op3;
+    } else if (instruction.code == ADD_CODE) {
+        // Implementation: reg[op1] = reg[op2] + op3
+        // Example: "add a5,a4,a5" op1=a5 op2=a4 op3=a5
+        registers[instruction.op1] = registers[instruction.op2] + instruction.op3;
+    } else if (instruction.code == LBU_CODE) {
+        // Implementation: reg[op1] = mem[reg[op2] + op3]
+        // Example: "lbu a4,-26(s0)" op1=a4 op2=s0 op3=-26
+        registers[instruction.op1] = memory[registers[instruction.op2] + instruction.op3];
+    } else if (instruction.code == BNE_CODE) {
+        // Implementation: if reg[op1] != reg[op2] then pc = lab[op3]
+        // Example: "bne a4,a5,.L18" op1=14 op2=a5 op3=L18
+        if (registers[instruction.op1] != registers[instruction.op2]) {
+            // We assume that the labels point directly to the pc to jump to.
+            pc = instruction.op3;
+        }
+    } else if (instruction.code == MV_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: reg[op1] = reg[op2]
+        // Example: "mv a0,a5" op1=a0 op2=a5
+        registers[instruction.op1] = registers[instruction.op2];
+    } else if (instruction.code == JR_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: pc = reg[op1]
+        // Example: "jr ra" op1=ra
+        pc = registers[instruction.op1];
+    } else if (instruction.code == SEQZ_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: if op2 == 0 then reg[op1] = 1 else reg[op1] = 0
+        // Example: "seqz a5,a4" op1=a5 op2=a4
+        if (registers[instruction.op2] == 0) {
+            registers[instruction.op1] = 1;
+        } else {
+            registers[instruction.op1] = 0;
+        }
+    } else if (instruction.code == BLT_CODE) {
+        // Implementation: if reg[op1] &lt; reg[op2] then pc = lab[op3]
+        // Example: "blt a4,a5,.L5" op1=a4 op2=a5 op3=L5
+        if (registers[instruction.op1] &lt; registers[instruction.op2]) {
+            // We assume that the labels point directly to the pc to jump to.
+            pc = instruction.op3;
+        }
+    } else {
+        panic(); // Unknown instruction type.
+    }
+}</declaration>
+	<template>
+		<name x="5" y="5">VM</name>
+		<declaration>// Automatically generated.
+
+void setup() {
+    instruction_t line_0 = { ADDI_CODE, sp, sp, -48 }; // verifyPIN
+instruction_t line_1 = { SW_CODE, ra, sp, 44 }; 
+instruction_t line_2 = { SW_CODE, s0, sp, 40 }; 
+instruction_t line_3 = { ADDI_CODE, s0, sp, 48 }; 
+instruction_t line_4 = { LUI_CODE, a5, symbol_high(g_authenticated), 0 }; 
+instruction_t line_5 = { LI_CODE, a4, 85, 0 }; 
+instruction_t line_6 = { SB_CODE, a4, a5, symbol_low(g_authenticated) }; 
+instruction_t line_7 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
+instruction_t line_8 = { LB_CODE, a5, a5, symbol_low(g_ptc) }; 
+instruction_t line_9 = { BLE_CODE, a5, zero, L2 }; 
+instruction_t line_10 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
+instruction_t line_11 = { LB_CODE, a5, a5, symbol_low(g_ptc) }; 
+instruction_t line_12 = { ANDI_CODE, a5, a5, 0xff }; 
+instruction_t line_13 = { ADDI_CODE, a5, a5, -1 }; 
+instruction_t line_14 = { ANDI_CODE, a5, a5, 0xff }; 
+instruction_t line_15 = { SLLI_CODE, a4, a5, 24 }; 
+instruction_t line_16 = { SRAI_CODE, a4, a4, 24 }; 
+instruction_t line_17 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
+instruction_t line_18 = { SB_CODE, a4, a5, symbol_low(g_ptc) }; 
+instruction_t line_19 = { LUI_CODE, a5, symbol_high(g_userPin), 0 }; 
+instruction_t line_20 = { ADDI_CODE, a5, a5, symbol_low(g_userPin) }; 
+instruction_t line_21 = { SW_CODE, a5, s0, -20 }; 
+instruction_t line_22 = { LUI_CODE, a5, symbol_high(g_cardPin), 0 }; 
+instruction_t line_23 = { ADDI_CODE, a5, a5, symbol_low(g_cardPin) }; 
+instruction_t line_24 = { SW_CODE, a5, s0, -24 }; 
+instruction_t line_25 = { LI_CODE, a5, 4, 0 }; 
+instruction_t line_26 = { SB_CODE, a5, s0, -25 }; 
+instruction_t line_27 = { LI_CODE, a5, 85, 0 }; 
+instruction_t line_28 = { SB_CODE, a5, s0, -26 }; 
+instruction_t line_29 = { LI_CODE, a5, 85, 0 }; 
+instruction_t line_30 = { SB_CODE, a5, s0, -27 }; 
+instruction_t line_31 = { SW_CODE, zero, s0, -32 }; 
+instruction_t line_32 = { J_CODE, L3, 0, 0 }; 
+instruction_t line_33 = { LW_CODE, a5, s0, -32 }; // L5
+instruction_t line_34 = { LW_CODE, a4, s0, -20 }; 
+instruction_t line_35 = { ADD_CODE, a5, a4, a5 }; 
+instruction_t line_36 = { LBU_CODE, a4, a5, 0 }; 
+instruction_t line_37 = { LW_CODE, a5, s0, -32 }; 
+instruction_t line_38 = { LW_CODE, a3, s0, -24 }; 
+instruction_t line_39 = { ADD_CODE, a5, a3, a5 }; 
+instruction_t line_40 = { LBU_CODE, a5, a5, 0 }; 
+instruction_t line_41 = { BEQ_CODE, a4, a5, L4 }; 
+instruction_t line_42 = { LI_CODE, a5, -86, 0 }; 
+instruction_t line_43 = { SB_CODE, a5, s0, -27 }; 
+instruction_t line_44 = { LW_CODE, a5, s0, -32 }; // L4
+instruction_t line_45 = { ADDI_CODE, a5, a5, 1 }; 
+instruction_t line_46 = { SW_CODE, a5, s0, -32 }; 
+instruction_t line_47 = { LBU_CODE, a5, s0, -25 }; // L3
+instruction_t line_48 = { LW_CODE, a4, s0, -32 }; 
+instruction_t line_49 = { BLT_CODE, a4, a5, L5 }; 
+instruction_t line_50 = { LBU_CODE, a5, s0, -25 }; 
+instruction_t line_51 = { LW_CODE, a4, s0, -32 }; 
+instruction_t line_52 = { BEQ_CODE, a4, a5, L6 }; 
+instruction_t line_53 = { LUI_CODE, a5, symbol_high(g_countermeasure), 0 }; 
+instruction_t line_54 = { LI_CODE, a4, 1, 0 }; 
+instruction_t line_55 = { SB_CODE, a4, a5, symbol_low(g_countermeasure) }; 
+instruction_t line_56 = { NOP_CODE, 0, 0, 0 }; 
+instruction_t line_57 = { LBU_CODE, a4, s0, -27 }; // L6
+instruction_t line_58 = { LI_CODE, a5, 85, 0 }; 
+instruction_t line_59 = { BNE_CODE, a4, a5, L7 }; 
+instruction_t line_60 = { LI_CODE, a5, -86, 0 }; 
+instruction_t line_61 = { SB_CODE, a5, s0, -26 }; 
+instruction_t line_62 = { J_CODE, L8, 0, 0 }; 
+instruction_t line_63 = { LI_CODE, a5, 85, 0 }; // L7
+instruction_t line_64 = { SB_CODE, a5, s0, -26 }; 
+instruction_t line_65 = { LBU_CODE, a5, s0, -26 }; // L8
+instruction_t line_66 = { ADDI_CODE, a5, a5, -170 }; 
+instruction_t line_67 = { SEQZ_CODE, a5, a5, 0 }; 
+instruction_t line_68 = { ANDI_CODE, a5, a5, 0xff }; 
+instruction_t line_69 = { BEQ_CODE, a5, zero, L2 }; 
+instruction_t line_70 = { LUI_CODE, a5, symbol_high(g_cardPin), 0 }; 
+instruction_t line_71 = { ADDI_CODE, a5, a5, symbol_low(g_cardPin) }; 
+instruction_t line_72 = { SW_CODE, a5, s0, -36 }; 
+instruction_t line_73 = { LUI_CODE, a5, symbol_high(g_userPin), 0 }; 
+instruction_t line_74 = { ADDI_CODE, a5, a5, symbol_low(g_userPin) }; 
+instruction_t line_75 = { SW_CODE, a5, s0, -40 }; 
+instruction_t line_76 = { LI_CODE, a5, 4, 0 }; 
+instruction_t line_77 = { SB_CODE, a5, s0, -41 }; 
+instruction_t line_78 = { LI_CODE, a5, 85, 0 }; 
+instruction_t line_79 = { SB_CODE, a5, s0, -42 }; 
+instruction_t line_80 = { LI_CODE, a5, 85, 0 }; 
+instruction_t line_81 = { SB_CODE, a5, s0, -43 }; 
+instruction_t line_82 = { SW_CODE, zero, s0, -48 }; 
+instruction_t line_83 = { J_CODE, L10, 0, 0 }; 
+instruction_t line_84 = { LW_CODE, a5, s0, -48 }; // L12
+instruction_t line_85 = { LW_CODE, a4, s0, -36 }; 
+instruction_t line_86 = { ADD_CODE, a5, a4, a5 }; 
+instruction_t line_87 = { LBU_CODE, a4, a5, 0 }; 
+instruction_t line_88 = { LW_CODE, a5, s0, -48 }; 
+instruction_t line_89 = { LW_CODE, a3, s0, -40 }; 
+instruction_t line_90 = { ADD_CODE, a5, a3, a5 }; 
+instruction_t line_91 = { LBU_CODE, a5, a5, 0 }; 
+instruction_t line_92 = { BEQ_CODE, a4, a5, L11 }; 
+instruction_t line_93 = { LI_CODE, a5, -86, 0 }; 
+instruction_t line_94 = { SB_CODE, a5, s0, -43 }; 
+instruction_t line_95 = { LW_CODE, a5, s0, -48 }; // L11
+instruction_t line_96 = { ADDI_CODE, a5, a5, 1 }; 
+instruction_t line_97 = { SW_CODE, a5, s0, -48 }; 
+instruction_t line_98 = { LBU_CODE, a5, s0, -41 }; // L10
+instruction_t line_99 = { LW_CODE, a4, s0, -48 }; 
+instruction_t line_100 = { BLT_CODE, a4, a5, L12 }; 
+instruction_t line_101 = { LBU_CODE, a5, s0, -41 }; 
+instruction_t line_102 = { LW_CODE, a4, s0, -48 }; 
+instruction_t line_103 = { BEQ_CODE, a4, a5, L13 }; 
+instruction_t line_104 = { LUI_CODE, a5, symbol_high(g_countermeasure), 0 }; 
+instruction_t line_105 = { LI_CODE, a4, 1, 0 }; 
+instruction_t line_106 = { SB_CODE, a4, a5, symbol_low(g_countermeasure) }; 
+instruction_t line_107 = { NOP_CODE, 0, 0, 0 }; 
+instruction_t line_108 = { LBU_CODE, a4, s0, -43 }; // L13
+instruction_t line_109 = { LI_CODE, a5, 85, 0 }; 
+instruction_t line_110 = { BNE_CODE, a4, a5, L14 }; 
+instruction_t line_111 = { LI_CODE, a5, -86, 0 }; 
+instruction_t line_112 = { SB_CODE, a5, s0, -42 }; 
+instruction_t line_113 = { J_CODE, L15, 0, 0 }; 
+instruction_t line_114 = { LI_CODE, a5, 85, 0 }; // L14
+instruction_t line_115 = { SB_CODE, a5, s0, -42 }; 
+instruction_t line_116 = { LBU_CODE, a5, s0, -42 }; // L15
+instruction_t line_117 = { ADDI_CODE, a5, a5, -170 }; 
+instruction_t line_118 = { SEQZ_CODE, a5, a5, 0 }; 
+instruction_t line_119 = { ANDI_CODE, a5, a5, 0xff }; 
+instruction_t line_120 = { BEQ_CODE, a5, zero, L17 }; 
+instruction_t line_121 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
+instruction_t line_122 = { LI_CODE, a4, 3, 0 }; 
+instruction_t line_123 = { SB_CODE, a4, a5, symbol_low(g_ptc) }; 
+instruction_t line_124 = { LUI_CODE, a5, symbol_high(g_authenticated), 0 }; 
+instruction_t line_125 = { LI_CODE, a4, -86, 0 }; 
+instruction_t line_126 = { SB_CODE, a4, a5, symbol_low(g_authenticated) }; 
+instruction_t line_127 = { LI_CODE, a5, 170, 0 }; 
+instruction_t line_128 = { J_CODE, L18, 0, 0 }; 
+instruction_t line_129 = { LUI_CODE, a5, symbol_high(g_countermeasure), 0 }; // L17
+instruction_t line_130 = { LI_CODE, a4, 1, 0 }; 
+instruction_t line_131 = { SB_CODE, a4, a5, symbol_low(g_countermeasure) }; 
+instruction_t line_132 = { NOP_CODE, 0, 0, 0 }; 
+instruction_t line_133 = { LI_CODE, a5, 85, 0 }; // L2
+instruction_t line_134 = { MV_CODE, a0, a5, 0 }; // L18
+instruction_t line_135 = { LW_CODE, ra, sp, 44 }; 
+instruction_t line_136 = { LW_CODE, s0, sp, 40 }; 
+instruction_t line_137 = { ADDI_CODE, sp, sp, 48 }; 
+instruction_t line_138 = { JR_CODE, ra, 0, 0 }; 
+program[0] = line_0;
+program[1] = line_1;
+program[2] = line_2;
+program[3] = line_3;
+program[4] = line_4;
+program[5] = line_5;
+program[6] = line_6;
+program[7] = line_7;
+program[8] = line_8;
+program[9] = line_9;
+program[10] = line_10;
+program[11] = line_11;
+program[12] = line_12;
+program[13] = line_13;
+program[14] = line_14;
+program[15] = line_15;
+program[16] = line_16;
+program[17] = line_17;
+program[18] = line_18;
+program[19] = line_19;
+program[20] = line_20;
+program[21] = line_21;
+program[22] = line_22;
+program[23] = line_23;
+program[24] = line_24;
+program[25] = line_25;
+program[26] = line_26;
+program[27] = line_27;
+program[28] = line_28;
+program[29] = line_29;
+program[30] = line_30;
+program[31] = line_31;
+program[32] = line_32;
+program[33] = line_33;
+program[34] = line_34;
+program[35] = line_35;
+program[36] = line_36;
+program[37] = line_37;
+program[38] = line_38;
+program[39] = line_39;
+program[40] = line_40;
+program[41] = line_41;
+program[42] = line_42;
+program[43] = line_43;
+program[44] = line_44;
+program[45] = line_45;
+program[46] = line_46;
+program[47] = line_47;
+program[48] = line_48;
+program[49] = line_49;
+program[50] = line_50;
+program[51] = line_51;
+program[52] = line_52;
+program[53] = line_53;
+program[54] = line_54;
+program[55] = line_55;
+program[56] = line_56;
+program[57] = line_57;
+program[58] = line_58;
+program[59] = line_59;
+program[60] = line_60;
+program[61] = line_61;
+program[62] = line_62;
+program[63] = line_63;
+program[64] = line_64;
+program[65] = line_65;
+program[66] = line_66;
+program[67] = line_67;
+program[68] = line_68;
+program[69] = line_69;
+program[70] = line_70;
+program[71] = line_71;
+program[72] = line_72;
+program[73] = line_73;
+program[74] = line_74;
+program[75] = line_75;
+program[76] = line_76;
+program[77] = line_77;
+program[78] = line_78;
+program[79] = line_79;
+program[80] = line_80;
+program[81] = line_81;
+program[82] = line_82;
+program[83] = line_83;
+program[84] = line_84;
+program[85] = line_85;
+program[86] = line_86;
+program[87] = line_87;
+program[88] = line_88;
+program[89] = line_89;
+program[90] = line_90;
+program[91] = line_91;
+program[92] = line_92;
+program[93] = line_93;
+program[94] = line_94;
+program[95] = line_95;
+program[96] = line_96;
+program[97] = line_97;
+program[98] = line_98;
+program[99] = line_99;
+program[100] = line_100;
+program[101] = line_101;
+program[102] = line_102;
+program[103] = line_103;
+program[104] = line_104;
+program[105] = line_105;
+program[106] = line_106;
+program[107] = line_107;
+program[108] = line_108;
+program[109] = line_109;
+program[110] = line_110;
+program[111] = line_111;
+program[112] = line_112;
+program[113] = line_113;
+program[114] = line_114;
+program[115] = line_115;
+program[116] = line_116;
+program[117] = line_117;
+program[118] = line_118;
+program[119] = line_119;
+program[120] = line_120;
+program[121] = line_121;
+program[122] = line_122;
+program[123] = line_123;
+program[124] = line_124;
+program[125] = line_125;
+program[126] = line_126;
+program[127] = line_127;
+program[128] = line_128;
+program[129] = line_129;
+program[130] = line_130;
+program[131] = line_131;
+program[132] = line_132;
+program[133] = line_133;
+program[134] = line_134;
+program[135] = line_135;
+program[136] = line_136;
+program[137] = line_137;
+program[138] = line_138;
+
+
+    // Init Stack Pointer (SP) and Program Counter (PC).
+    registers[sp] = MEMORY_LENGTH - 1;
+    pc = 0;
+}</declaration>
+		<location id="id0" x="-629" y="68">
+		</location>
+		<location id="id1" x="-527" y="68">
+		</location>
+		<location id="id2" x="-739" y="68">
+		</location>
+		<init ref="id2"/>
+		<transition id="id3">
+			<source ref="id2"/>
+			<target ref="id0"/>
+			<label kind="assignment" x="-714" y="51">setup()</label>
+		</transition>
+		<transition id="id4">
+			<source ref="id1"/>
+			<target ref="id0"/>
+			<label kind="assignment" x="-612" y="110">execute()</label>
+			<nail x="-527" y="110"/>
+			<nail x="-629" y="110"/>
+		</transition>
+		<transition id="id5">
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-663" y="0">pc &lt; PROGRAM_LENGTH</label>
+			<label kind="assignment" x="-612" y="17">fetch()</label>
+			<nail x="-629" y="34"/>
+			<nail x="-527" y="34"/>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+vm = VM();
+// List one or more processes to be composed into a system.
+system vm;
+</system>
+	<queries>
+		<query>
+			<formula/>
+			<comment>// Just to make sure that the VM does not have any internal logic errors.</comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt; !vm.test_failure</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2025-03-10 19:08:01 +0100">
+			</result>
+		</query>
+	</queries>
+</nta>

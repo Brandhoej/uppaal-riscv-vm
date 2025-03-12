@@ -1,1 +1,1 @@
-python3 ./experiement_test.py
+python3 ./experiment_test.py
