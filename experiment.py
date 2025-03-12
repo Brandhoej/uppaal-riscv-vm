@@ -1,3 +1,4 @@
+import shutil
 import argparse
 import re
 
@@ -69,10 +70,12 @@ class RISCVProgram:
         return labels
 
     def generated_program_length(self) -> str:
+        # /* GENERATED: PROGRAM LENGTH */
         # Example: "const int32_t PROGRAM_LENGTH = 8;"
         return f'const int32_t PROGRAM_LENGTH = {self.length};'
 
     def generated_labels(self) -> str:
+        # /* GENERATED: PC LABELS */
         # Example: "const pc_t L0 = 0;"
         # Example: "const pc_t verifyPIN() = 31;"
         labels: List[str] = []
@@ -80,7 +83,8 @@ class RISCVProgram:
             labels.append(f'const pc_t {label} = {pc};')
         return '\n'.join(labels)
 
-    def generated_globals(self) -> str:
+    def generated_global_symbols(self) -> str:
+        # /* GENERATED: GLOBAL SYMBOLS */
         # Example: "const address_t g_authenticated = 0;"
         # Example: "const address_t g_authenticated = 2;"
         globals: List[str] = []
@@ -95,31 +99,39 @@ class RISCVProgram:
         return ''
 
     def generated_program(self) -> str:
+        # /* GENERATED: PROGRAM */
         # Example: "instruction_t line_0 = {ADDI_CODE, sp, sp, -32};"
-        instructions: List[str] = []
+        code_instructions: List[str] = []
         # Example: "program[0] = line_0;"
-        assignments: List[str] = []
+        code_assignments: List[str] = []
 
         line = 0
         for (symbol, instructions) in self.programs:
-            for (i, j) in enumerate(instructions):
-                print("Instruction START")
-                print(j)
-                print(j[0])
-                print(j[1])
-                print(j[2])
-                print(j[3])
-                print("Instruction END")
-                (a, b, c, d) = j
+            for (i, (a, b, c, d)) in enumerate(instructions):
                 line_identifier = f'line_{line}'
-                instructions.append(f'instruction_t {line_identifier} = {{ {a} {'0' if not b else b} {'0' if not c else c} {'0' if not d else d} }} {f'// {symbol}' if i == 0 else ''}')
-                assignments.append(f'program[{line}] = {line_identifier}')
+                code_instructions.append(f'instruction_t {line_identifier} = {{ {a}, {'0' if not b else b}, {'0' if not c else c}, {'0' if not d else d} }}; {f'// {symbol}' if i == 0 else ''}')
+                code_assignments.append(f'program[{line}] = {line_identifier};')
                 line += 1
-        return '\n'.join(instructions.extend(assignments))
+
+        code_instructions.extend(code_assignments)
+        return '\n'.join(code_instructions)
 
     def generated_sp_pc_init(self) -> str:
         return 'registers[sp] = MEMORY_LENGTH - 1;\npc = 0;'
 
+    def fill_template(self, template: str):
+        content = ''
+        with open(template) as file:
+            content = file.read()
+
+        content.replace('/* GENERATED: LABELS */', self.generated_labels() + '\n')
+        content.replace('/* GENERATED: GLOBAL SYMBOLS */', self.generated_global_symbols() + '\n')
+        content.replace('/* GENERATED: PROGRAM LENGTH */', self.generated_program_length() + '\n')
+        content.replace('/* GENERATED: PROGRAM */', self.generated_program() + '\n')
+
+        with open(template, 'w') as file:
+            file.write(content)
+        
     @staticmethod
     def is_instruction(line: str) -> bool:
         # For now I believe it is sufficient to check if it starts with a '.' or not.
@@ -300,41 +312,38 @@ class RISCVProgram:
         segments: List[Tuple[str, List[str]]] = []
         segment: Optional[str] = None
 
-        file = open(path, 'r')
-        for line in file:
-            # Removes duplicate whitespace and pre- and post-fix whitespace.
-            line = re.sub(r'\s+', ' ', line).strip()
+        with open(path, 'r') as file:
+            for line in file:
+                # Removes duplicate whitespace and pre- and post-fix whitespace.
+                line = re.sub(r'\s+', ' ', line).strip()
 
-            # We skip empty lines:
-            if not line:
-                continue
+                # We skip empty lines:
+                if not line:
+                    continue
 
-            if line.endswith(':'):
-                # We try to add a new segment before we have added lines to the rpevious one.
-                # We assume that no segment can actually be empty.
-                if segment is not None:
-                    (_, current_segment) = segments[len(segments) - 1]
-                    if len(current_segment) == 0:
-                        file.close()
+                if line.endswith(':'):
+                    # We try to add a new segment before we have added lines to the rpevious one.
+                    # We assume that no segment can actually be empty.
+                    if segment is not None:
+                        (_, current_segment) = segments[len(segments) - 1]
+                        if len(current_segment) == 0:
+                            raise SystemExit
+
+                    # We remove ':' and '()' as some labels may end with it for some reason.
+                    # Example: "verifyPIN():" -> "verifyPIN"
+                    # Example: ".L4:" -> "L4"
+                    segment = line.removesuffix(':').removesuffix('()').removeprefix('.')
+                    segments.append((segment, []))
+                    pass
+                else:
+                    # we found a line which does not start a segment. However,
+                    # we are currently not inside a segment so where does this belong?
+                    # This error is just handled by exiting because the assembly file is unsupported.
+                    if segment is None:
                         raise SystemExit
+                    
+                    segments[len(segments) - 1][1].append(line)
 
-                # We remove ':' and '()' as some labels may end with it for some reason.
-                # Example: "verifyPIN():" -> "verifyPIN"
-                # Example: ".L4:" -> "L4"
-                segment = line.removesuffix(':').removesuffix('()').removeprefix('.')
-                segments.append((segment, []))
-                pass
-            else:
-                # we found a line which does not start a segment. However,
-                # we are currently not inside a segment so where does this belong?
-                # This error is just handled by exiting because the assembly file is unsupported.
-                if segment is None:
-                    file.close()
-                    raise SystemExit
-                
-                segments[len(segments) - 1][1].append(line)
-
-        file.close()
         return segments
 
 def main():
@@ -349,10 +358,6 @@ def main():
         help="Path to the RISC-V assembly file. This file will be processed by the script."
     )
     parser.add_argument(
-        "-v", "--verbose", action="store_true",
-        help="Enable verbose output for debugging or detailed logging."
-    )
-    parser.add_argument(
         "-t", "--template", type=str, default="./template.xml",
         help="Path to the Uppaal template file (default: './template.xml')."
     )
@@ -362,8 +367,12 @@ def main():
     )
     
     args = parser.parse_args()
-
     program = RISCVProgram.parse(args.file)
+
+    # Copy the template at --template and save to --output.
+    # Then fill the copied template with the generated code.
+    shutil.copy(args.template, args.output)
+    program.fill_template(args.output)
 
 if __name__ == "__main__":
     main()
