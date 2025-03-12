@@ -4,12 +4,6 @@ import re
 
 from typing import Dict, List, Tuple, Optional
 
-def as_integer(string: str) -> Optional[int]:
-    try:
-        return int(string)
-    except ValueError:
-        return None
-
 class RISCVProgram:
     __symbols: List[Tuple[str, int, str]]
     """Dictionary mapping global symbol identifiers to memory offsets and size.
@@ -219,9 +213,8 @@ class RISCVProgram:
             operands[i] = operand.removeprefix('.')
 
             # Some operands are hexadecimals.
-            integer = as_integer(operand)
-            if integer is not None:
-                operands[i] = integer
+            if operand.startswith('0x'):
+                operands[i] = str(int(operand, 0))
 
 
         return operands

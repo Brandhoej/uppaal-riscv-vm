@@ -31,6 +31,7 @@ class TestRISCVProgramParse(unittest.TestCase):
     def test_parse_operand(self):
         self.assertEqual(RISCVProgram.parse_operand(''), [''])
         self.assertEqual(RISCVProgram.parse_operand('ra'), ['ra'])
+        self.assertEqual(RISCVProgram.parse_operand('0xff'), ['255'])
         self.assertEqual(RISCVProgram.parse_operand('-32'), ['-32'])
         self.assertEqual(RISCVProgram.parse_operand('(-20)sp'), ['sp', '-20'])
         self.assertEqual(RISCVProgram.parse_operand('%lo(g_authenticated)(a5)'), ['a5', 'symbol_low(g_authenticated)'])
@@ -242,9 +243,9 @@ class TestRISCVProgramParse(unittest.TestCase):
             "instruction_t line_66 = { J_CODE, L11, 0, 0 }; ",
             "instruction_t line_67 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; // L10",
             "instruction_t line_68 = { LB_CODE, a5, a5, symbol_low(g_ptc) }; ",
-            "instruction_t line_69 = { ANDI_CODE, a5, a5, 0xff }; ",
+            "instruction_t line_69 = { ANDI_CODE, a5, a5, 255 }; ",
             "instruction_t line_70 = { ADDI_CODE, a5, a5, -1 }; ",
-            "instruction_t line_71 = { ANDI_CODE, a5, a5, 0xff }; ",
+            "instruction_t line_71 = { ANDI_CODE, a5, a5, 255 }; ",
             "instruction_t line_72 = { SLLI_CODE, a4, a5, 24 }; ",
             "instruction_t line_73 = { SRAI_CODE, a4, a4, 24 }; ",
             "instruction_t line_74 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; ",
