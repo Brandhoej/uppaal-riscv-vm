@@ -4,6 +4,15 @@ import re
 from experiment import RISCVProgram
 
 class TestRISCVProgramParse(unittest.TestCase):
+    def test_symbol_size(self):
+        self.assertEqual(RISCVProgram.symbol_size(['.zero 2']), 2)
+        self.assertEqual(RISCVProgram.symbol_size(['.byte 2']), 1)
+        self.assertEqual(RISCVProgram.symbol_size(['.half 32']), 2)
+        self.assertEqual(RISCVProgram.symbol_size(['.word 5']), 4)
+        self.assertEqual(RISCVProgram.symbol_size(['.word 32', '.word 0']), 8)
+        self.assertEqual(RISCVProgram.symbol_size(['.string "\001\002\003"']), 4)
+        self.assertEqual(RISCVProgram.symbol_size(['.string "\001\002"', '.zero 1']), 4)
+
     def test_is_instruction(self):
         self.assertTrue(RISCVProgram.is_instruction('addi sp,sp,-32'))
         self.assertFalse(RISCVProgram.is_instruction('.zero 1'))
@@ -27,6 +36,69 @@ class TestRISCVProgramParse(unittest.TestCase):
         self.assertEqual(len(groups), 2)
         self.assertEqual(groups[0], '-24')
         self.assertEqual(groups[1], 's0')
+
+    def test_generated_memory_initialisation(self):
+        program = RISCVProgram([('g_ptc', ['.word 32'])], [], 0)
+        generated_memory_initialisation = (
+            'memory[0] = 32; // 0\'it byte of g_ptc',
+            'memory[1] = 0; // 1\'it byte of g_ptc',
+            'memory[2] = 0; // 2\'it byte of g_ptc',
+            'memory[3] = 0; // 3\'it byte of g_ptc',
+        )
+        self.assertEqual(program.generated_memory_initialisation(), '\n'.join(generated_memory_initialisation))
+
+        program = RISCVProgram([('g_ptc', ['.word -1430532899'])], [])
+        generated_memory_initialisation = (
+            'memory[0] = 221; // 0\'it byte of g_ptc',
+            'memory[1] = 204; // 1\'it byte of g_ptc',
+            'memory[2] = 187; // 2\'it byte of g_ptc',
+            'memory[3] = 170; // 3\'it byte of g_ptc',
+        )
+        self.assertEqual(program.generated_memory_initialisation(), '\n'.join(generated_memory_initialisation))
+
+        program = RISCVProgram([('g_ptc', ['.ascii "\001\002\003\004"'])], [])
+        generated_memory_initialisation = (
+            'memory[0] = 1; // 0\'it byte of g_ptc',
+            'memory[1] = 2; // 1\'it byte of g_ptc',
+            'memory[2] = 3; // 2\'it byte of g_ptc',
+            'memory[3] = 4; // 3\'it byte of g_ptc',
+        )
+        self.assertEqual(program.generated_memory_initialisation(), '\n'.join(generated_memory_initialisation))
+
+        program = RISCVProgram([
+            ('g_ptc', ['.word 32', '.word 0']),
+            ('g_authenticated', ['.byte 2']),
+            ('g_cardPin', ['.ascii "\001\002\003\004"']),
+            ('g_userPin', ['.string "\001"', '.zero 2']),
+            ('g_ptc', ['.half 1000']),
+            ('g_userPin', ['.string "\001\002\003"']),
+        ], [])
+        generated_memory_initialisation = (
+            'memory[0] = 32; // 0\'it byte of g_ptc',
+            'memory[1] = 0; // 1\'it byte of g_ptc',
+            'memory[2] = 0; // 2\'it byte of g_ptc',
+            'memory[3] = 0; // 3\'it byte of g_ptc',
+            'memory[4] = 0; // 4\'it byte of g_ptc',
+            'memory[5] = 0; // 5\'it byte of g_ptc',
+            'memory[6] = 0; // 6\'it byte of g_ptc',
+            'memory[7] = 0; // 7\'it byte of g_ptc',
+            'memory[8] = 2; // 0\'it byte of g_authenticated',
+            'memory[9] = 1; // 0\'it byte of g_cardPin',
+            'memory[10] = 2; // 1\'it byte of g_cardPin',
+            'memory[11] = 3; // 2\'it byte of g_cardPin',
+            'memory[12] = 4; // 3\'it byte of g_cardPin',
+            'memory[13] = 1; // 0\'it byte of g_userPin',
+            'memory[14] = 0; // 1\'it byte of g_userPin',
+            'memory[15] = 0; // 2\'it byte of g_userPin',
+            'memory[16] = 0; // 3\'it byte of g_userPin',
+            'memory[17] = 232; // 0\'it byte of g_ptc',
+            'memory[18] = 3; // 1\'it byte of g_ptc',
+            'memory[19] = 1; // 0\'it byte of g_userPin',
+            'memory[20] = 2; // 1\'it byte of g_userPin',
+            'memory[21] = 3; // 2\'it byte of g_userPin',
+            'memory[22] = 0; // 3\'it byte of g_userPin',
+        )
+        self.assertEqual(program.generated_memory_initialisation(), '\n'.join(generated_memory_initialisation))
 
     def test_parse_operand(self):
         self.assertEqual(RISCVProgram.parse_operand(''), [''])
@@ -92,31 +164,29 @@ class TestRISCVProgramParse(unittest.TestCase):
 
     def test_parse_verify_pin_0(self):
         path = './FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm'
-        program = RISCVProgram.parse(path)
+        program = RISCVProgram.parse(path, 0)
     
         self.assertEqual(len(program.symbols), 4)
 
-        (symbol, length, init) = program.symbols[0]
+        (symbol, lines) = program.symbols[0]
         self.assertEqual(symbol, 'g_ptc')
-        self.assertEqual(length, 1)
-        self.assertEqual(init, '.zero')
+        self.assertEqual(len(lines), 1)
+        self.assertEqual(lines[0], '.zero 1')
 
-        (symbol, length, init) = program.symbols[1]
+        (symbol, lines) = program.symbols[1]
         self.assertEqual(symbol, 'g_authenticated')
-        self.assertEqual(length, 1)
-        self.assertEqual(init, '.zero')
+        self.assertEqual(len(lines), 1)
+        self.assertEqual(lines[0], '.zero 1')
 
-        (symbol, length, init) = program.symbols[2]
+        (symbol, lines) = program.symbols[2]
         self.assertEqual(symbol, 'g_userPin')
-        self.assertEqual(length, 4)
-        self.assertEqual(init, '.zero')
+        self.assertEqual(len(lines), 1)
+        self.assertEqual(lines[0], '.zero 4')
 
-        (symbol, length, init) = program.symbols[3]
+        (symbol, lines) = program.symbols[3]
         self.assertEqual(symbol, 'g_cardPin')
-        self.assertEqual(length, 4)
-        self.assertEqual(init, '.zero')
-
-        self.assertEqual(program.symbols_memory, 10)
+        self.assertEqual(len(lines), 1)
+        self.assertEqual(lines[0], '.zero 4')
 
         self.assertEqual(program.programs[0][0], 'verifyPIN')
         self.assertEqual(len(program.programs[0][1]), 19)
@@ -144,7 +214,7 @@ class TestRISCVProgramParse(unittest.TestCase):
 
     def test_generated_verify_pin_2(self):
         path = './FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_2_HB+FTL.asm'
-        program = RISCVProgram.parse(path)
+        program = RISCVProgram.parse(path, 0)
 
         program_length = 'const int32_t PROGRAM_LENGTH = 84;'
         self.assertEqual(program.generated_program_length(), program_length)
@@ -171,7 +241,21 @@ class TestRISCVProgramParse(unittest.TestCase):
             "const address_t g_cardPin = 7;"
         )
         self.assertEqual(program.generated_global_symbols(), globals)
-        self.assertEqual(program.symbols_memory, 11)
+
+        generated_memory_initialisation = (
+            'memory[0] = 0; // 0\'it byte of g_countermeasure',
+            'memory[1] = 0; // 0\'it byte of g_ptc',
+            'memory[2] = 0; // 0\'it byte of g_authenticated',
+            'memory[3] = 0; // 0\'it byte of g_userPin',
+            'memory[4] = 0; // 1\'it byte of g_userPin',
+            'memory[5] = 0; // 2\'it byte of g_userPin',
+            'memory[6] = 0; // 3\'it byte of g_userPin',
+            'memory[7] = 0; // 0\'it byte of g_cardPin',
+            'memory[8] = 0; // 1\'it byte of g_cardPin',
+            'memory[9] = 0; // 2\'it byte of g_cardPin',
+            'memory[10] = 0; // 3\'it byte of g_cardPin',
+        )
+        self.assertEqual(program.generated_memory_initialisation(), '\n'.join(generated_memory_initialisation))
 
         instructions = (
             "instruction_t line_0 = { ADDI_CODE, sp, sp, -32 }; // verifyPIN",
@@ -347,18 +431,18 @@ class TestRISCVProgramParse(unittest.TestCase):
 
     def test_parse_verify_pins(self):
         files = [
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm', 4, 64 ),                          # VerifyPIN_0
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_1_HB.asm', 5, 74 ),                       # VerifyPIN_1
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_2_HB+FTL.asm', 5, 84 ),                   # VerifyPIN_2
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_3_HB+FTL+INL.asm', 5, 78 ),               # VerifyPIN_3
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC.asm', 5, 121), # VerifyPIN_4
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_5_HB+FTL+DPTC+DC.asm', 5, 139),           # VerifyPIN_5
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_6_HB+FTL+INL+DPTC+DT.asm', 5, 90 ),       # VerifyPIN_6
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC.asm', 5, 186),    # VerifyPIN_7
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm', 4, 64 ),                           # VerifyPIN_0
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_1_HB.asm', 5, 74 ),                        # VerifyPIN_1
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_2_HB+FTL.asm', 5, 84 ),                    # VerifyPIN_2
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_3_HB+FTL+INL.asm', 5, 78 ),                # VerifyPIN_3
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC.asm', 5, 121),  # VerifyPIN_4
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_5_HB+FTL+DPTC+DC.asm', 5, 139),            # VerifyPIN_5
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_6_HB+FTL+INL+DPTC+DT.asm', 5, 90 ),        # VerifyPIN_6
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC.asm', 5, 186),     # VerifyPIN_7
         ]
 
         for (path, symbols, length) in files:
-            program = RISCVProgram.parse(path)
+            program = RISCVProgram.parse(path, 0)
             self.assertEqual(len(program.symbols), symbols)
             self.assertEqual(program.length, length)
     

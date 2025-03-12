@@ -646,6 +646,19 @@ program[184] = line_184;
 program[185] = line_185;
 
 
+    memory[0] = 0; // 0'it byte of g_countermeasure
+memory[1] = 0; // 0'it byte of g_ptc
+memory[2] = 0; // 0'it byte of g_authenticated
+memory[3] = 0; // 0'it byte of g_userPin
+memory[4] = 0; // 1'it byte of g_userPin
+memory[5] = 0; // 2'it byte of g_userPin
+memory[6] = 0; // 3'it byte of g_userPin
+memory[7] = 0; // 0'it byte of g_cardPin
+memory[8] = 0; // 1'it byte of g_cardPin
+memory[9] = 0; // 2'it byte of g_cardPin
+memory[10] = 0; // 3'it byte of g_cardPin
+
+
     // Init Stack Pointer (SP) and Program Counter (PC).
     registers[sp] = MEMORY_LENGTH - 1;
     pc = 0;

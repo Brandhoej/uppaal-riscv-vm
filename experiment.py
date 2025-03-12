@@ -5,17 +5,17 @@ import re
 from typing import Dict, List, Tuple, Optional
 
 class RISCVProgram:
-    __symbols: List[Tuple[str, int, str]]
+    __symbols: List[Tuple[str, List[str]]]
     """Dictionary mapping global symbol identifiers to memory offsets and size.
     
     Ie. [(symbol, size, initialisation)]
 
     Example:
     symbols = [
-        ('g_ptc',           1, '.zero 1'),
-        ('g_authenticated', 1, '.zero 1'),
-        ('g_userPin',       4, '.zero 4'),
-        ('g_cardPin',       4, '.zero 4'),
+        ('g_ptc',           ['.zero 1']),
+        ('g_authenticated', ['.zero 1']),
+        ('g_userPin',       ['.zero 4']),
+        ('g_cardPin',       ['.zero 4']),
     ]
     """
 
@@ -34,27 +34,30 @@ class RISCVProgram:
     
     """
 
+    __memory: int
+
     def __init__(
             self,
-            symbols: List[Tuple[str, int, str]],
+            symbols: List[Tuple[str, List[str]]],
             programs: List[Tuple[str, List[Tuple[str, str, str, str]]]],
+            memory: int = 256,
         ):
         self.__symbols = symbols
         self.__programs = programs
+        self.__memory = memory
 
     @property
     def length(self) -> int:
         return sum(len(lines) for _, lines in self.__programs)
 
     @property
-    def symbols(self) -> List[Tuple[str, int, str]]:
+    def symbols(self) -> List[Tuple[str, List[str]]]:
         """ Returns the symbols in sequence of declaration in the assembly file. """
         return self.__symbols
 
     @property
-    def symbols_memory(self) -> int:
-        """ Returns the number of bytes the global symbols require in memory. """
-        return sum(size for _, size, _ in self.__symbols)
+    def memory(self) -> int:
+        return self.__memory
 
     @property
     def programs(self) -> List[Tuple[str, List[Tuple[str, str, str, str]]]]:
@@ -83,20 +86,47 @@ class RISCVProgram:
             labels.append(f'const pc_t {label} = {pc};')
         return '\n'.join(labels)
 
-    def generated_global_symbols(self) -> str:
+    def generated_global_symbols(self) -> str: # TODO
         # /* GENERATED: GLOBAL SYMBOLS */
         # Example: "const address_t g_authenticated = 0;"
         # Example: "const address_t g_authenticated = 2;"
         globals: List[str] = []
         offset = 0
-        for (symbol, size, _) in self.symbols:
+        for (symbol, lines) in self.symbols:
             globals.append(f'const address_t {symbol} = {offset};')
-            offset += size
+            offset += RISCVProgram.symbol_size(lines)
         return '\n'.join(globals)
     
-    def generated_globals_initial(self) -> str:
-        # TODO: initial memory for global symbols. Right now we just support zero.
-        return ''
+    def generated_memory_initialisation(self) -> str:
+        # g_ptc:
+        #         .word   32
+        #         .word   0
+        # g_authenticated:
+        #         .byte   2
+        # g_cardPin:
+        #         .ascii  "\001\002\003\004"
+        # g_userPin:
+        #         .string "\001"
+        #         .zero   2
+        # g_ptc:
+        #         .half   32
+        # g_userPin:
+        #         .string "\001\002\003"
+        # OBS: Strings are zero escaped "\0" which accounts for a byte.
+
+        generated: List[str] = []
+
+        global_offset = 0
+        for (symbol, lines) in self.symbols:
+            local_offset = 0
+            for line in lines:
+                blob = RISCVProgram.data_bytes(line)
+                for i in range(len(blob)):
+                    generated.append(f'memory[{global_offset}] = {int(blob[i])}; // {local_offset}\'it byte of {symbol}')
+                    local_offset += 1
+                    global_offset += 1
+
+        return '\n'.join(generated)
 
     def generated_program(self) -> str:
         # /* GENERATED: PROGRAM */
@@ -128,6 +158,8 @@ class RISCVProgram:
         content = content.replace('/* GENERATED: GLOBAL SYMBOLS */', self.generated_global_symbols() + '\n')
         content = content.replace('/* GENERATED: PROGRAM LENGTH */', self.generated_program_length() + '\n')
         content = content.replace('/* GENERATED: PROGRAM */', self.generated_program() + '\n')
+        content = content.replace('/* GENERATED: MEMORY INITIALISATION */', self.generated_memory_initialisation() + '\n')
+        content = content.replace('/* GENERATED: MEMORY_LENGTH */', str(self.memory))
 
         with open(template, 'w') as file:
             file.write(content)
@@ -142,7 +174,44 @@ class RISCVProgram:
         return not line.startswith('.')
 
     @staticmethod
-    def parse(path: str) -> "RISCVProgram":
+    def data_size(line: str) -> int:
+        return len(RISCVProgram.data_bytes(line))
+
+    @staticmethod
+    def data_bytes(line: str) -> bytes:
+        [lhs, rhs] = line.split(' ')
+
+        # Example: ".zero 2"
+        if lhs == '.zero':
+            return bytes(int(rhs))
+        # Example ".ascii "\001\002\003\004""
+        elif lhs == '.ascii':
+            rhs = rhs.removeprefix('"').removesuffix('"')
+            return rhs.encode('latin1')
+        # Example: ".string "\001""
+        elif lhs == '.string':
+            rhs = rhs.removeprefix('"').removesuffix('"')
+            # Strings are zero escaped "\0" which accounts for a byte (+1).
+            return rhs.encode('latin1') + b'\0'
+        # Example: ".byte 2"
+        elif lhs == '.byte':
+            return int(rhs).to_bytes(1, 'little', signed=True)
+        # Example: ".half 32"
+        elif lhs == '.half':
+            return int(rhs).to_bytes(2, 'little', signed=True)
+        # Example: ".word 123"
+        elif lhs == '.word':
+            return int(rhs).to_bytes(4, 'little', signed=True)
+        else:
+            # Unknow data type
+            raise SystemExit
+
+    @staticmethod
+    def symbol_size(lines: List[str]) -> int:
+        return sum(RISCVProgram.data_size(line) for line in lines)
+
+    @staticmethod
+    def parse(path: str, memory: int) -> "RISCVProgram":
         # First we parse the file into segments which are seperated by an identifier such as "g_ptc"
         # or "verifyPIN:" - the pattern is that they all end with ":". The proceeding line as then
         # bundled into the segment which we then process later.
@@ -160,10 +229,9 @@ class RISCVProgram:
                 break
         
         # Third we parse the global symbols.
-        symbols: List[Tuple[str, int, str]] = []
+        symbols: List[Tuple[str, List[str]]] = []
         for index in range(first_program):
-            symbol = RISCVProgram.parse_global_symbol(segments[index])
-            symbols.append(symbol)
+            symbols.append(segments[index])
 
         # Fourth we parse the program segments.
         programs: List[Tuple[str, List[Tuple[str, str, str, str]]]] = []
@@ -171,7 +239,7 @@ class RISCVProgram:
             program = RISCVProgram.parse_program(segments[index])
             programs.append(program)
 
-        return RISCVProgram(symbols, programs)
+        return RISCVProgram(symbols, programs, memory)
 
     @staticmethod
     def parse_program(segment: Tuple[str, List[str]]) -> Tuple[str, List[Tuple[str, str, str, str]]]:
@@ -276,33 +344,6 @@ class RISCVProgram:
         return (opcode_map[instruction], operands[0], operands[1], operands[2])
 
     @staticmethod
-    def parse_global_symbol(segment: Tuple[str, List[str]]) -> Tuple[str, int, str]:
-        # g_ptc:     .zero 1
-        # g_ptc:     .byte 123
-        # g_ptc:     .word 123
-        # g_cardPin: .ascii "\001\002\003\004"
-        (symbol, lines) = segment
-
-        # Multi-line initialisation of global variables are unsupported.
-        if len(lines) == 0:
-            raise SystemExit
-
-        [lhs, rhs] = lines[0].split(' ')
-        if lhs == '.zero':
-            return (symbol, int(rhs), lhs)
-        elif lhs == '.word':
-            #  We assume 32-bit and therefore a word i four bytes.
-            return (symbol, 4, rhs)
-        elif lhs == '.ascii':
-            # We assume that an ascii character is one byte lone.
-            characters = rhs.count('\\')
-            rhs = rhs.removeprefix('"').removesuffix('"')
-            return (symbol, characters, rhs)
-        
-        # Unknown global symbol
-        raise SystemExit
-
-    @staticmethod
     def parse_segments(path: str) -> List[Tuple[str, List[str]]]:
         """ Returns the segments which are the parts of a risc-v assembly seperated by identifier (postfixed ':'). """
         segments: List[Tuple[str, List[str]]] = []
@@ -359,9 +400,13 @@ def main():
         "-o", "--output", type=str, default="./",
         help="Directory or file path where the Uppaal model will be saved (default: './')."
     )
+    parser.add_argument(
+        '-m', '--memory', type=int, default=256,
+        help="The memory allocated for the program."
+    )
     
     args = parser.parse_args()
-    program = RISCVProgram.parse(args.file)
+    program = RISCVProgram.parse(args.file, args.memory)
 
     # Copy the template at --template and save to --output.
     # Then fill the copied template with the generated code.
