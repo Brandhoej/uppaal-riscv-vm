@@ -42,6 +42,10 @@ class RISCVProgram:
         self.__programs = programs
 
     @property
+    def length(self) -> int:
+        return sum(len(lines) for _, lines in self.__programs)
+
+    @property
     def symbols(self) -> List[Tuple[str, int, str]]:
         """ Returns the symbols in sequence of declaration in the assembly file. """
         return self.__symbols
@@ -54,6 +58,67 @@ class RISCVProgram:
     @property
     def programs(self) -> List[Tuple[str, List[Tuple[str, str, str, str]]]]:
         return self.__programs
+    
+    @property
+    def labels(self) -> List[Tuple[str, int]]:
+        labels = []
+        pc = 0
+        for (label, lines) in self.programs:
+            labels.append((label, pc))
+            pc += len(lines)
+        return labels
+
+    def generated_program_length(self) -> str:
+        # Example: "const int32_t PROGRAM_LENGTH = 8;"
+        return f'const int32_t PROGRAM_LENGTH = {self.length};'
+
+    def generated_labels(self) -> str:
+        # Example: "const pc_t L0 = 0;"
+        # Example: "const pc_t verifyPIN() = 31;"
+        labels: List[str] = []
+        for (label, pc) in self.labels:
+            labels.append(f'const pc_t {label} = {pc};')
+        return '\n'.join(labels)
+
+    def generated_globals(self) -> str:
+        # Example: "const address_t g_authenticated = 0;"
+        # Example: "const address_t g_authenticated = 2;"
+        globals: List[str] = []
+        offset = 0
+        for (symbol, size, _) in self.symbols:
+            globals.append(f'const address_t {symbol} = {offset};')
+            offset += size
+        return '\n'.join(globals)
+    
+    def generated_globals_initial(self) -> str:
+        # TODO: initial memory for global symbols. Right now we just support zero.
+        return ''
+
+    def generated_program(self) -> str:
+        # Example: "instruction_t line_0 = {ADDI_CODE, sp, sp, -32};"
+        instructions: List[str] = []
+        # Example: "program[0] = line_0;"
+        assignments: List[str] = []
+
+        line = 0
+        for (symbol, instructions) in self.programs:
+            for (i, j) in enumerate(instructions):
+                print("Instruction START")
+                print(j)
+                print(j[0])
+                print(j[1])
+                print(j[2])
+                print(j[3])
+                print("Instruction END")
+                (a, b, c, d) = j
+                line_identifier = f'line_{line}'
+                instructions.append(f'instruction_t {line_identifier} = {{ {a} {'0' if not b else b} {'0' if not c else c} {'0' if not d else d} }} {f'// {symbol}' if i == 0 else ''}')
+                assignments.append(f'program[{line}] = {line_identifier}')
+                line += 1
+        return '\n'.join(instructions.extend(assignments))
+
+    def generated_sp_pc_init(self) -> str:
+        return 'registers[sp] = MEMORY_LENGTH - 1;\npc = 0;'
 
     @staticmethod
     def is_instruction(line: str) -> bool:
@@ -119,18 +184,31 @@ class RISCVProgram:
             groups = re.findall(pattern, operand)
             groups[0] = f'symbol_high({groups[0]})'
             groups.reverse()
+
+            for (i, group) in enumerate(groups):
+                groups[i] = group.removeprefix('.')
+
             return groups
         elif operand.startswith('%lo'):
             operand = operand.removeprefix('%lo')
             groups = re.findall(pattern, operand)
             groups[0] = f'symbol_low({groups[0]})'
             groups.reverse()
+
+            for (i, group) in enumerate(groups):
+                groups[i] = group.removeprefix('.')
+
             return groups
         elif operand.startswith('(') or operand.endswith(')'):
             groups = re.findall(pattern, operand)
             groups.reverse()
+
+            for (i, group) in enumerate(groups):
+                groups[i] = group.removeprefix('.')
+
             return groups
 
+        operand = operand.removeprefix('.')
         return [operand]
 
     @staticmethod
@@ -140,7 +218,7 @@ class RISCVProgram:
             # Too many operands
             raise SystemExit
         elif len(operands) < 3:
-            operands.extend([""] * (3 - len(operands)))
+            operands.extend([''] * (3 - len(operands)))
 
         return tuple(operands)
 
@@ -198,7 +276,7 @@ class RISCVProgram:
         (symbol, lines) = segment
 
         # Multi-line initialisation of global variables are unsupported.
-        if len(lines) is 0:
+        if len(lines) == 0:
             raise SystemExit
 
         [lhs, rhs] = lines[0].split(' ')
@@ -240,7 +318,10 @@ class RISCVProgram:
                         file.close()
                         raise SystemExit
 
-                segment = line.removesuffix(':')
+                # We remove ':' and '()' as some labels may end with it for some reason.
+                # Example: "verifyPIN():" -> "verifyPIN"
+                # Example: ".L4:" -> "L4"
+                segment = line.removesuffix(':').removesuffix('()').removeprefix('.')
                 segments.append((segment, []))
                 pass
             else:
