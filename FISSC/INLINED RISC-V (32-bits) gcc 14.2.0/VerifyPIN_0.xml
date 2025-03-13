@@ -36,7 +36,7 @@ const int32_t MEMORY_LENGTH = 256;
 typedef int[0, MEMORY_LENGTH] address_t;
 uint8_t memory[MEMORY_LENGTH];
 
-const int32_t PROGRAM_LENGTH = 64;
+const int32_t PROGRAM_LENGTH = 63;
 
 instruction_t program[PROGRAM_LENGTH];
 
@@ -321,7 +321,6 @@ instruction_t line_59 = { MV_CODE, a0, a5, 0 }; // L8
 instruction_t line_60 = { LW_CODE, ra, sp, 28 }; 
 instruction_t line_61 = { LW_CODE, s0, sp, 24 }; 
 instruction_t line_62 = { ADDI_CODE, sp, sp, 32 }; 
-instruction_t line_63 = { JR_CODE, ra, 0, 0 }; 
 program[0] = line_0;
 program[1] = line_1;
 program[2] = line_2;
@@ -385,7 +384,6 @@ program[59] = line_59;
 program[60] = line_60;
 program[61] = line_61;
 program[62] = line_62;
-program[63] = line_63;
 
 
     memory[0] = 0; // 0'it byte of g_ptc

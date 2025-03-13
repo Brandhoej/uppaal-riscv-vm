@@ -36,7 +36,7 @@ const int32_t MEMORY_LENGTH = 256;
 typedef int[0, MEMORY_LENGTH] address_t;
 uint8_t memory[MEMORY_LENGTH];
 
-const int32_t PROGRAM_LENGTH = 186;
+const int32_t PROGRAM_LENGTH = 185;
 
 instruction_t program[PROGRAM_LENGTH];
 
@@ -457,7 +457,6 @@ instruction_t line_181 = { MV_CODE, a0, a5, 0 }; // L21
 instruction_t line_182 = { LW_CODE, ra, sp, 28 }; 
 instruction_t line_183 = { LW_CODE, s0, sp, 24 }; 
 instruction_t line_184 = { ADDI_CODE, sp, sp, 32 }; 
-instruction_t line_185 = { JR_CODE, ra, 0, 0 }; 
 program[0] = line_0;
 program[1] = line_1;
 program[2] = line_2;
@@ -643,7 +642,6 @@ program[181] = line_181;
 program[182] = line_182;
 program[183] = line_183;
 program[184] = line_184;
-program[185] = line_185;
 
 
     memory[0] = 0; // 0'it byte of g_countermeasure

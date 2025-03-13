@@ -358,6 +358,10 @@ class RISCVProgram:
                 if not line:
                     continue
 
+                # It is possible to comment lines:
+                if line.startswith(";"):
+                    continue
+
                 if line.endswith(':'):
                     # We try to add a new segment before we have added lines to the rpevious one.
                     # We assume that no segment can actually be empty.

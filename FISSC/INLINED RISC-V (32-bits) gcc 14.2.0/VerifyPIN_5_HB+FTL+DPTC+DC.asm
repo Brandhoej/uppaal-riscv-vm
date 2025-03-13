@@ -162,4 +162,4 @@ verifyPIN():
         lw      ra,44(sp)
         lw      s0,40(sp)
         addi    sp,sp,48
-        jr      ra
+;        jr      ra
