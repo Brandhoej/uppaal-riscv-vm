@@ -199,7 +199,8 @@ class RISCVProgram:
         # Example ".ascii "\001\002\003\004""
         elif lhs == '.ascii':
             rhs = rhs.removeprefix('"').removesuffix('"')
-            return rhs.encode('latin1')
+            unescaped = rhs.encode('latin1').decode('unicode_escape')
+            return unescaped.encode('latin1')
         # Example: ".string "\001""
         elif lhs == '.string':
             rhs = rhs.removeprefix('"').removesuffix('"')

@@ -138,7 +138,7 @@ class TestRISCVProgramParse(unittest.TestCase):
         
         self.assertEqual(segments[3][0], 'g_cardPin')
         self.assertEqual(len(segments[3][1]), 1)
-        self.assertEqual(segments[3][1][0], '.zero 4')
+        self.assertEqual(segments[3][1][0], '.ascii "\\001\\002\\003\\004"')
 
         self.assertEqual(segments[4][0], 'verifyPIN')
         self.assertEqual(len(segments[4][1]), 19)
@@ -189,7 +189,7 @@ class TestRISCVProgramParse(unittest.TestCase):
         (symbol, lines) = program.symbols[3]
         self.assertEqual(symbol, 'g_cardPin')
         self.assertEqual(len(lines), 1)
-        self.assertEqual(lines[0], '.zero 4')
+        self.assertEqual(lines[0], '.ascii "\\001\\002\\003\\004"')
 
         self.assertEqual(program.programs[0][0], 'verifyPIN')
         self.assertEqual(len(program.programs[0][1]), 19)
@@ -254,10 +254,10 @@ class TestRISCVProgramParse(unittest.TestCase):
             'memory[4] = 0; // 1\'it byte of g_userPin',
             'memory[5] = 0; // 2\'it byte of g_userPin',
             'memory[6] = 0; // 3\'it byte of g_userPin',
-            'memory[7] = 0; // 0\'it byte of g_cardPin',
-            'memory[8] = 0; // 1\'it byte of g_cardPin',
-            'memory[9] = 0; // 2\'it byte of g_cardPin',
-            'memory[10] = 0; // 3\'it byte of g_cardPin',
+            'memory[7] = 1; // 0\'it byte of g_cardPin',
+            'memory[8] = 2; // 1\'it byte of g_cardPin',
+            'memory[9] = 3; // 2\'it byte of g_cardPin',
+            'memory[10] = 4; // 3\'it byte of g_cardPin',
         )
         self.assertEqual(program.generated_memory_initialisation(), '\n'.join(generated_memory_initialisation))
 
@@ -438,14 +438,14 @@ class TestRISCVProgramParse(unittest.TestCase):
 
     def test_parse_verify_pins(self):
         files = [
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm', 4, 64 - 1),                            # VerifyPIN_0
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_1_HB.asm', 5, 74 - 1),                         # VerifyPIN_1
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_2_HB+FTL.asm', 5, 84 - 1),                     # VerifyPIN_2
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_3_HB+FTL+INL.asm', 5, 78 - 1 ),                # VerifyPIN_3
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC.asm', 5, 121 - 1),  # VerifyPIN_4
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_5_HB+FTL+DPTC+DC.asm', 5, 139 - 1),            # VerifyPIN_5
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_6_HB+FTL+INL+DPTC+DT.asm', 5, 90 - 1),         # VerifyPIN_6
-            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC.asm', 5, 186 - 1),     # VerifyPIN_7
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm', 4, 64 - 1),                             # VerifyPIN_0
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_1_HB.asm', 5, 74 - 1),                          # VerifyPIN_1
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_2_HB+FTL.asm', 5, 84 - 1),                      # VerifyPIN_2
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_3_HB+FTL+INL.asm', 5, 78 - 1 ),                 # VerifyPIN_3
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC.asm', 5, 121 - 1),   # VerifyPIN_4
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_5_HB+FTL+DPTC+DC.asm', 5, 139 - 1),             # VerifyPIN_5
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_6_HB+FTL+INL+DPTC+DT.asm', 5, 90 - 1),          # VerifyPIN_6
+            ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC.asm', 5, 186 - 1),      # VerifyPIN_7
         ]
 
         for (path, symbols, length) in files:

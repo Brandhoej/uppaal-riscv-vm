@@ -213,7 +213,7 @@ void execute() {
         // Note: This is a pseudo-instruction.
         // Implementation: if reg[op1] &lt; reg[op2] then pc = lab[op3]
         // Example: "ble a4,a5,.L9" op1=a4 op2=a5 op3=L9
-        if (registers[instruction.op1] &lt; registers[instruction.op2]) {
+        if (registers[instruction.op1] &lt;= registers[instruction.op2]) {
             // We assume that the labels point directly to the pc to jump to.
             pc = instruction.op3;
         }

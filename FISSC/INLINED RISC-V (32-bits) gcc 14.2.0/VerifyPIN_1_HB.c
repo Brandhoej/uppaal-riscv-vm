@@ -14,7 +14,7 @@ UBYTE g_countermeasure;
 SBYTE g_ptc;
 BOOL g_authenticated;
 UBYTE g_userPin[PIN_SIZE];
-UBYTE g_cardPin[PIN_SIZE];
+UBYTE g_cardPin[PIN_SIZE] = {1, 2, 3, 4};
 
 __attribute__((always_inline)) inline void countermeasure() {
     g_countermeasure = 1;

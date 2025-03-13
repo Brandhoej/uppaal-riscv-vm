@@ -7,7 +7,7 @@ g_authenticated:
 g_userPin:
         .zero   4
 g_cardPin:
-        .zero   4
+        .ascii  "\001\002\003\004"
 verifyPIN():
         addi    sp,sp,-32
         sw      ra,28(sp)
