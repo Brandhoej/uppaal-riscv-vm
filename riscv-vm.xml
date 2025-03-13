@@ -172,42 +172,51 @@ void execute() {
     if (instruction.code == ADDI_CODE) {
         // Implementation: reg[op1] = reg[op2] + op3
         // Example: "addi a5,a4,1" op1=a5 op2=a4 op3=1
+        // Example: "{ ADDI_CODE, a5, a5, -1 }"
         registers[instruction.op1] = registers[instruction.op2] + instruction.op3;
     } else if (instruction.code == SW_CODE) {
         // Implementation: mem[reg[op2] + op3] = reg[op1]
         // Example: "sw a5,-20(s0)" op1=a5 op2=s0 op3=-20
-        w_mem_i32(registers[instruction.op2] + instruction.op3, instruction.op1);
+        // Example: "{ SW_CODE, a5, s0, -24 }"
+        w_mem_i32(registers[instruction.op2] + instruction.op3, registers[instruction.op1]);
     } else if (instruction.code == LW_CODE) {
         // Implementation: reg[op1] = mem[reg[op2] + op3]
         // Example: "lw a5,-24(s0)" op1=a5 op2=s0 op3=-24
+        // Example: "{ LW_CODE, a5, s0, -32 }"
         registers[instruction.op1] = r_mem_i32(registers[instruction.op2] + instruction.op3);
     } else if (instruction.code == LUI_CODE) {
         // Implementation: reg[op1] = op2
         // Example: "lui a5,%hi(g_ptc)" op1=a5 op2=symbol_high(g_ptc)
+        // Example: "{ LUI_CODE, a5, symbol_high(g_cardPin), 0 }"
         registers[instruction.op1] = instruction.op2;
     } else if (instruction.code == SB_CODE) {
         // Implementation: mem[reg[op2] + op3 = reg[op1][7:0]
         // Example: "a4,%lo(g_ptc)(a5)" op1=a4 op2=a5 op3=symbol_low(g_ptc)
-        memory[registers[instruction.op2] + instruction.op3] = registers[instruction.op1] &amp; 127;
+        // Example: "{ SB_CODE, a5, s0, -25 }"
+        memory[registers[instruction.op2] + instruction.op3] = registers[instruction.op1] &amp; 255;
     } else if (instruction.code == J_CODE) {
         // Note: This is a pseudo-instruction.
         // Implementation: pc = lab[op1]
         // Example: "j .L6" op1=L6
+        // Example: " { J_CODE, L3, 0, 0 }"
         // We assume that the labels point directly to the pc to jump to.
         pc = instruction.op1;
     } else if (instruction.code == LI_CODE) {
         // Note: This is a pseudo-instruction.
         // Implementation: reg[op1] = op2
         // Example: "li a5,85" op1=a5 op2=85
+        // Example: "{ LI_CODE, a5, 4, 0 }"
         registers[instruction.op1] = instruction.op2;
     } else if (instruction.code == LB_CODE) {
         // Implementation: reg[op1] = mem[reg[op2] + op3]
         // Example: "a5,%lo(g_ptc)(a5)" op1=a5 op2=a5 op3=symbol_low(g_ptc)
+        // Example: "{ LB_CODE, a5, a5, symbol_low(g_ptc) }"
         registers[instruction.op1] = memory[registers[instruction.op2] + instruction.op3];
     } else if (instruction.code == BLE_CODE) {
         // Note: This is a pseudo-instruction.
-        // Implementation: if reg[op1] &lt; reg[op2] then pc = lab[op3]
+        // Implementation: if reg[op1] &lt;= reg[op2] then pc = lab[op3]
         // Example: "ble a4,a5,.L9" op1=a4 op2=a5 op3=L9
+        // Example: "{ BLE_CODE, a5, zero, L2 }"
         if (registers[instruction.op1] &lt;= registers[instruction.op2]) {
             // We assume that the labels point directly to the pc to jump to.
             pc = instruction.op3;
@@ -215,6 +224,7 @@ void execute() {
     } else if (instruction.code == BEQ_CODE) {
         // Implementation: if reg[op1] = reg[op2] then pc = lab[op3]
         // Example: "beq a4,a5,.L3" op1=a4 op2=a5 op3=L3
+        // Example: "{ BEQ_CODE, a4, a5, L4 }"
         if (registers[instruction.op1] == registers[instruction.op2]) {
             // We assume that the labels point directly to the pc to jump to.
             pc = instruction.op3;
@@ -225,26 +235,32 @@ void execute() {
     } else if (instruction.code == ANDI_CODE) {
         // Implementation: reg[op1] = reg[op2] &amp; op3
         // Example: "andi a5,a3,0xff" op1=a5 op2=a3 op3=0xff
+        // Example: "{ ANDI_CODE, a5, a5, 255 }"
         registers[instruction.op1] = registers[instruction.op2] &amp; instruction.op3;
     } else if (instruction.code == SLLI_CODE) {
         // Implementation: reg[op1] = reg[op2] &lt;&lt; op3
         // Example: "slli a4,a5,24" op1=a4 op2=a5 op3=24
+        // Example: "{ SLLI_CODE, a4, a5, 24 }"
         registers[instruction.op1] = registers[instruction.op2] &lt;&lt; instruction.op3;
     } else if (instruction.code == SRAI_CODE) {
         // Implementation: reg[op1] = reg[op2] &gt;&gt; op3
         // Example: "srai a4,a2,24" op1=a4 op2=a2 op3=24
+        // Example: "{ SRAI_CODE, a4, a4, 24 }"
         registers[instruction.op1] = registers[instruction.op2] &gt;&gt; instruction.op3;
     } else if (instruction.code == ADD_CODE) {
         // Implementation: reg[op1] = reg[op2] + op3
         // Example: "add a5,a4,a5" op1=a5 op2=a4 op3=a5
-        registers[instruction.op1] = registers[instruction.op2] + instruction.op3;
+        // Example: "{ ADD_CODE, a5, a4, a5 }"
+        registers[instruction.op1] = registers[instruction.op2] + registers[instruction.op3];
     } else if (instruction.code == LBU_CODE) {
         // Implementation: reg[op1] = mem[reg[op2] + op3][7:0]
         // Example: "lbu a4,-26(s0)" op1=a4 op2=s0 op3=-26
-        registers[instruction.op1] = memory[registers[instruction.op2] + instruction.op3] &amp; 127;
+        // Example: "{ LBU_CODE, a5, s0, -25 }"
+        registers[instruction.op1] = memory[registers[instruction.op2] + instruction.op3] &amp; 255;
     } else if (instruction.code == BNE_CODE) {
         // Implementation: if reg[op1] != reg[op2] then pc = lab[op3]
         // Example: "bne a4,a5,.L18" op1=14 op2=a5 op3=L18
+        // Example: "{ BNE_CODE, a5, a4, L7 }"
         if (registers[instruction.op1] != registers[instruction.op2]) {
             // We assume that the labels point directly to the pc to jump to.
             pc = instruction.op3;
@@ -253,6 +269,7 @@ void execute() {
         // Note: This is a pseudo-instruction.
         // Implementation: reg[op1] = reg[op2]
         // Example: "mv a0,a5" op1=a0 op2=a5
+        // Example: "{ MV_CODE, a0, a5, 0 }"
         registers[instruction.op1] = registers[instruction.op2];
     } else if (instruction.code == JR_CODE) {
         // Note: This is a pseudo-instruction.
@@ -261,7 +278,7 @@ void execute() {
         pc = registers[instruction.op1];
     } else if (instruction.code == SEQZ_CODE) {
         // Note: This is a pseudo-instruction.
-        // Implementation: if op2 == 0 then reg[op1] = 1 else reg[op1] = 0
+        // Implementation: if reg[op2] == 0 then reg[op1] = 1 else reg[op1] = 0
         // Example: "seqz a5,a4" op1=a5 op2=a4
         if (registers[instruction.op2] == 0) {
             registers[instruction.op1] = 1;

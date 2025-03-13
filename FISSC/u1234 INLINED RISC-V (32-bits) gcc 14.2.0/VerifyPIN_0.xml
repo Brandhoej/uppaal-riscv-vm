@@ -441,14 +441,14 @@ program[62] = line_62;
 
     memory[0] = 3; // 0'it byte of g_ptc
 memory[1] = 0; // 0'it byte of g_authenticated
-memory[2] = 0; // 0'it byte of g_userPin
-memory[3] = 0; // 1'it byte of g_userPin
-memory[4] = 0; // 2'it byte of g_userPin
-memory[5] = 0; // 3'it byte of g_userPin
-memory[6] = 0; // 0'it byte of g_cardPin
-memory[7] = 0; // 1'it byte of g_cardPin
-memory[8] = 0; // 2'it byte of g_cardPin
-memory[9] = 0; // 3'it byte of g_cardPin
+memory[2] = 1; // 0'it byte of g_userPin
+memory[3] = 2; // 1'it byte of g_userPin
+memory[4] = 3; // 2'it byte of g_userPin
+memory[5] = 4; // 3'it byte of g_userPin
+memory[6] = 1; // 0'it byte of g_cardPin
+memory[7] = 2; // 1'it byte of g_cardPin
+memory[8] = 3; // 2'it byte of g_cardPin
+memory[9] = 4; // 3'it byte of g_cardPin
 
 
     // Init Stack Pointer (SP) and Program Counter (PC).
