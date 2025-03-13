@@ -1,5 +1,6 @@
 import unittest
 import re
+import subprocess
 
 from fill import RISCVProgram
 
@@ -446,5 +447,8 @@ class TestRISCVProgramParse(unittest.TestCase):
             self.assertEqual(len(program.symbols), symbols)
             self.assertEqual(program.length, length)
     
+    def test_fill_templates(self):
+        subprocess.run('./fill_templates.sh')
+
 if __name__ == '__main__':
     unittest.main()
