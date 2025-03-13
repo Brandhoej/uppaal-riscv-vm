@@ -210,9 +210,9 @@ void execute() {
         // Example: "lui a5,%hi(g_ptc)" op1=a5 op2=symbol_high(g_ptc)
         registers[instruction.op1] = instruction.op2;
     } else if (instruction.code == SB_CODE) {
-        // Implementation: mem[reg[op2] + op3 = op1
+        // Implementation: mem[reg[op2] + op3 = reg[op1][7:0]
         // Example: "a4,%lo(g_ptc)(a5)" op1=a4 op2=a5 op3=symbol_low(g_ptc)
-        memory[registers[instruction.op2] + instruction.op3] = instruction.op1;
+        memory[registers[instruction.op2] + instruction.op3] = registers[instruction.op1] &amp; 127;
     } else if (instruction.code == J_CODE) {
         // Note: This is a pseudo-instruction.
         // Implementation: pc = lab[op1]
@@ -263,9 +263,9 @@ void execute() {
         // Example: "add a5,a4,a5" op1=a5 op2=a4 op3=a5
         registers[instruction.op1] = registers[instruction.op2] + instruction.op3;
     } else if (instruction.code == LBU_CODE) {
-        // Implementation: reg[op1] = mem[reg[op2] + op3]
+        // Implementation: reg[op1] = mem[reg[op2] + op3][7:0]
         // Example: "lbu a4,-26(s0)" op1=a4 op2=s0 op3=-26
-        registers[instruction.op1] = memory[registers[instruction.op2] + instruction.op3];
+        registers[instruction.op1] = memory[registers[instruction.op2] + instruction.op3] &amp; 127;
     } else if (instruction.code == BNE_CODE) {
         // Implementation: if reg[op1] != reg[op2] then pc = lab[op3]
         // Example: "bne a4,a5,.L18" op1=14 op2=a5 op3=L18
