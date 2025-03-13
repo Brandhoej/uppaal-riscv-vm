@@ -120,8 +120,9 @@ class TestRISCVProgramParse(unittest.TestCase):
 
     def test_parse_segments_verify_pin_0(self):
         path = "./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm"
-        segments = RISCVProgram.parse_segments(path)
+        (segments, assertions) = RISCVProgram.parse_segments(path)
         self.assertEqual(len(segments), 12)
+        self.assertEqual(len(assertions), 0)
 
         self.assertEqual(segments[0][0], 'g_ptc')
         self.assertEqual(len(segments[0][1]), 1)
@@ -430,6 +431,11 @@ class TestRISCVProgramParse(unittest.TestCase):
         )
         self.assertEqual(program.generated_program(), '\n'.join(instructions))
 
+    def test_parse_test_example_verify_pin_0(self):
+        path = './test_examples/VerifyPIN_0.asm'
+        program = RISCVProgram.parse(path, 0)
+        self.assertEqual(len(program.assertions), 1)
+
     def test_parse_verify_pins(self):
         files = [
             ('./FISSC/INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm', 4, 64 - 1),                            # VerifyPIN_0
@@ -449,6 +455,7 @@ class TestRISCVProgramParse(unittest.TestCase):
     
     def test_fill_templates(self):
         subprocess.run('./fill_templates.sh')
+        subprocess.run('./fill_test_examples.sh')
 
 if __name__ == '__main__':
     unittest.main()

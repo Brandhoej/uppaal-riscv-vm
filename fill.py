@@ -6,8 +6,7 @@ from typing import Dict, List, Tuple, Optional
 
 class RISCVProgram:
     __symbols: List[Tuple[str, List[str]]]
-    """Dictionary mapping global symbol identifiers to memory offsets and size.
-    
+    """
     Ie. [(symbol, size, initialisation)]
 
     Example:
@@ -20,8 +19,7 @@ class RISCVProgram:
     """
 
     __programs: List[Tuple[str, List[Tuple[str, str, str, str]]]]
-    """Dictionary mapping a label to a list of instructions.
-
+    """
     Ie. [(label, [(code, op1, op2, op3)])]
     
     Example:
@@ -34,6 +32,14 @@ class RISCVProgram:
     
     """
 
+    __assertions: List[Tuple[int, int, str]] = []
+    """
+    Ie. [(segment, instruction, assertion)]
+
+    Example:
+    assertions = [(0, 1, 'registers[sp] == 123')]
+    """
+
     __memory: int
 
     def __init__(
@@ -41,10 +47,12 @@ class RISCVProgram:
             symbols: List[Tuple[str, List[str]]],
             programs: List[Tuple[str, List[Tuple[str, str, str, str]]]],
             memory: int = 256,
+            assertions: List[Tuple[int, int, str]] = []
         ):
         self.__symbols = symbols
         self.__programs = programs
         self.__memory = memory
+        self.__assertions = assertions
 
     @property
     def length(self) -> int:
@@ -71,6 +79,10 @@ class RISCVProgram:
             labels.append((label, pc))
             pc += len(lines)
         return labels
+
+    @property
+    def assertions(self) -> List[Tuple[int, int, str]]:
+        return self.__assertions
 
     def generated_program_length(self) -> str:
         # /* GENERATED: PROGRAM LENGTH */
@@ -215,7 +227,7 @@ class RISCVProgram:
         # First we parse the file into segments which are seperated by an identifier such as "g_ptc"
         # or "verifyPIN:" - the pattern is that they all end with ":". The proceeding line as then
         # bundled into the segment which we then process later.
-        segments = RISCVProgram.parse_segments(path)
+        (segments, assertions) = RISCVProgram.parse_segments(path)
 
         # Second we try to figure out when the program starts and the global symbols end.
         # When this has been figured out then we can start constructing the global and program segments.
@@ -239,7 +251,7 @@ class RISCVProgram:
             program = RISCVProgram.parse_program(segments[index])
             programs.append(program)
 
-        return RISCVProgram(symbols, programs, memory)
+        return RISCVProgram(symbols, programs, memory, assertions)
 
     @staticmethod
     def parse_program(segment: Tuple[str, List[str]]) -> Tuple[str, List[Tuple[str, str, str, str]]]:
@@ -344,9 +356,10 @@ class RISCVProgram:
         return (opcode_map[instruction], operands[0], operands[1], operands[2])
 
     @staticmethod
-    def parse_segments(path: str) -> List[Tuple[str, List[str]]]:
+    def parse_segments(path: str) -> Tuple[List[Tuple[str, List[str]]], List[Tuple[int, int, str]]]:
         """ Returns the segments which are the parts of a risc-v assembly seperated by identifier (postfixed ':'). """
         segments: List[Tuple[str, List[str]]] = []
+        assertions: List[Tuple[int, int, str]] = []
         segment: Optional[str] = None
 
         with open(path, 'r') as file:
@@ -382,10 +395,18 @@ class RISCVProgram:
                     # This error is just handled by exiting because the assembly file is unsupported.
                     if segment is None:
                         raise SystemExit
-                    
-                    segments[len(segments) - 1][1].append(line)
 
-        return segments
+                    segment_index = len(segments) - 1
+                    
+                    split = line.split(';')
+                    if len(split) == 2:
+                        (instruction, assertion) = (split[0].strip(), split[1].strip())
+                        assertions.append((segment, len(segments[segment_index][1]), assertion))
+                        segments[segment_index][1].append(instruction)
+                    else:
+                        segments[len(segments) - 1][1].append(line)
+
+        return (segments, assertions)
 
 def main():
     parser = argparse.ArgumentParser(
