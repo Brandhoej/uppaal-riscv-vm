@@ -1,7 +1,7 @@
 g_countermeasure:
         .zero   1
 g_ptc:
-        .zero   1
+        .byte   3
 g_authenticated:
         .zero   1
 g_userPin:

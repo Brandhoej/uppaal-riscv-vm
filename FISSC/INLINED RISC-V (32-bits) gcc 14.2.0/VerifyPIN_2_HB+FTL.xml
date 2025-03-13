@@ -461,7 +461,7 @@ program[82] = line_82;
 
 
     memory[0] = 0; // 0'it byte of g_countermeasure
-memory[1] = 0; // 0'it byte of g_ptc
+memory[1] = 3; // 0'it byte of g_ptc
 memory[2] = 0; // 0'it byte of g_authenticated
 memory[3] = 0; // 0'it byte of g_userPin
 memory[4] = 0; // 1'it byte of g_userPin

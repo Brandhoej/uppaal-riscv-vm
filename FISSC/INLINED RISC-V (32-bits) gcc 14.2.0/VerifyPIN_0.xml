@@ -417,7 +417,7 @@ program[61] = line_61;
 program[62] = line_62;
 
 
-    memory[0] = 0; // 0'it byte of g_ptc
+    memory[0] = 3; // 0'it byte of g_ptc
 memory[1] = 0; // 0'it byte of g_authenticated
 memory[2] = 0; // 0'it byte of g_userPin
 memory[3] = 0; // 1'it byte of g_userPin

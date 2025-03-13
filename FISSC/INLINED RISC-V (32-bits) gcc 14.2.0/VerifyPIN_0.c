@@ -9,7 +9,7 @@ typedef unsigned char UBYTE;
 typedef unsigned char BOOL;
 typedef unsigned long ULONG;
 
-SBYTE g_ptc;
+SBYTE g_ptc = 3;
 BOOL g_authenticated;
 UBYTE g_userPin[PIN_SIZE];
 UBYTE g_cardPin[PIN_SIZE] = {1, 2, 3, 4};

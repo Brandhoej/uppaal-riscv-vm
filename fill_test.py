@@ -126,7 +126,7 @@ class TestRISCVProgramParse(unittest.TestCase):
 
         self.assertEqual(segments[0][0], 'g_ptc')
         self.assertEqual(len(segments[0][1]), 1)
-        self.assertEqual(segments[0][1][0], '.zero 1')
+        self.assertEqual(segments[0][1][0], '.byte 3')
 
         self.assertEqual(segments[1][0], 'g_authenticated')
         self.assertEqual(len(segments[1][1]), 1)
@@ -174,7 +174,7 @@ class TestRISCVProgramParse(unittest.TestCase):
         (symbol, lines) = program.symbols[0]
         self.assertEqual(symbol, 'g_ptc')
         self.assertEqual(len(lines), 1)
-        self.assertEqual(lines[0], '.zero 1')
+        self.assertEqual(lines[0], '.byte 3')
 
         (symbol, lines) = program.symbols[1]
         self.assertEqual(symbol, 'g_authenticated')
@@ -248,7 +248,7 @@ class TestRISCVProgramParse(unittest.TestCase):
 
         generated_memory_initialisation = (
             'memory[0] = 0; // 0\'it byte of g_countermeasure',
-            'memory[1] = 0; // 0\'it byte of g_ptc',
+            'memory[1] = 3; // 0\'it byte of g_ptc',
             'memory[2] = 0; // 0\'it byte of g_authenticated',
             'memory[3] = 0; // 0\'it byte of g_userPin',
             'memory[4] = 0; // 1\'it byte of g_userPin',
