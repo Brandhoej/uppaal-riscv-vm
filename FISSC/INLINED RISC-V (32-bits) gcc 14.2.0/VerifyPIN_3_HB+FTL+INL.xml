@@ -36,38 +36,46 @@ const int32_t MEMORY_LENGTH = 256;
 typedef int[0, MEMORY_LENGTH] address_t;
 uint8_t memory[MEMORY_LENGTH];
 
-// Loads a uint8_t from memory starting at "address".
-uint8_t mem_u8(address_t address) {
+// Reads a uint8_t from memory starting at "address".
+uint8_t r_mem_u8(address_t address) {
     return memory[address];
 }
 
-// Loads a int8_t from memory starting at "address".
-int8_t mem_i8(address_t address) {
-    uint8_t value = memory[address];
-    return value &gt; 127 ? value - 256 : value;
-}
-
-// Loads a uint16_t from memory starting at "address".
-uint16_t mem_u16(address_t address) {
+// Reads a uint16_t from memory starting at "address".
+uint16_t r_mem_u16(address_t address) {
     return (memory[address + 1] &lt;&lt; 0) |
            (memory[address + 0] &lt;&lt; 8);
 }
 
-// Loads a int16_t from memory starting at "address".
-int16_t mem_i16(address_t address) {
-    uint16_t mem = mem_u16(address);
+// Reads a int8_t from memory starting at "address".
+int8_t r_mem_i8(address_t address) {
+    uint8_t value = memory[address];
+    return value &gt; 127 ? value - 256 : value;
+}
+
+// Reads a int16_t from memory starting at "address".
+int16_t r_mem_i16(address_t address) {
+    uint16_t mem = r_mem_u16(address);
     return mem &gt; INT16_MAX ? mem - UINT16_MAX - 1 : mem;
 }
 
-// Loads a int32_t from memory starting at "address".
-int32_t mem_i32(address_t address) {
-    uint16_t high = mem_u16(address);
-    uint16_t low = mem_u16(address + 2);
+// Reads a int32_t from memory starting at "address".
+int32_t r_mem_i32(address_t address) {
+    uint16_t high = r_mem_u16(address);
+    uint16_t low = r_mem_u16(address + 2);
     if (high &lt; INT16_MAX + 1) {
         return high * (UINT16_MAX + 1) + low;
     } else {
         return (high - (UINT16_MAX + 1)) * (UINT16_MAX + 1) + low;
     }
+}
+
+// Writes an int32_t from memory starting at "address"
+void w_mem_i32(address_t address, int32_t value) {
+    memory[address + 0] = (value &gt;&gt; 24)  &amp; 255;
+    memory[address + 1] = (value &gt;&gt; 16)  &amp; 255;
+    memory[address + 2] = (value &gt;&gt; 8) &amp; 255;
+    memory[address + 3] = (value &gt;&gt; 0) &amp; 255;
 }
 
 const int32_t PROGRAM_LENGTH = 77;
@@ -181,14 +189,11 @@ void execute() {
     } else if (instruction.code == SW_CODE) {
         // Implementation: mem[reg[op2] + op3] = reg[op1]
         // Example: "sw a5,-20(s0)" op1=a5 op2=s0 op3=-20
-        memory[registers[instruction.op2] + 0 + instruction.op3] = (registers[instruction.op1] &gt;&gt; 0)  &amp; 255;
-        memory[registers[instruction.op2] + 1 + instruction.op3] = (registers[instruction.op1] &gt;&gt; 8)  &amp; 255;
-        memory[registers[instruction.op2] + 2 + instruction.op3] = (registers[instruction.op1] &gt;&gt; 16) &amp; 255;
-        memory[registers[instruction.op2] + 3 + instruction.op3] = (registers[instruction.op1] &gt;&gt; 24) &amp; 255;
+        w_mem_i32(registers[instruction.op2] + instruction.op3, instruction.op1);
     } else if (instruction.code == LW_CODE) {
         // Implementation: reg[op1] = mem[reg[op2] + op3]
         // Example: "lw a5,-24(s0)" op1=a5 op2=s0 op3=-24
-        registers[instruction.op1] = mem_i32(registers[instruction.op2] + instruction.op3);
+        registers[instruction.op1] = r_mem_i32(registers[instruction.op2] + instruction.op3);
     } else if (instruction.code == LUI_CODE) {
         // Implementation: reg[op1] = op2
         // Example: "lui a5,%hi(g_ptc)" op1=a5 op2=symbol_high(g_ptc)
