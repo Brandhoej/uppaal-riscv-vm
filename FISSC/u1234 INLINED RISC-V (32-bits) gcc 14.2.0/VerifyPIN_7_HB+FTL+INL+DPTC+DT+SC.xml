@@ -40,24 +40,28 @@ uint8_t memory[MEMORY_LENGTH];
 uint8_t r_mem_u8(address_t address) {
     return memory[address];
 }
+uint8_t mem_u8(address_t address) { return r_mem_u8(address); }
 
 // Reads a uint16_t from memory starting at "address".
 uint16_t r_mem_u16(address_t address) {
     return (memory[address + 1] &lt;&lt; 0) |
            (memory[address + 0] &lt;&lt; 8);
 }
+uint16_t mem_u16(address_t address) { return r_mem_u16(address); }
 
 // Reads a int8_t from memory starting at "address".
 int8_t r_mem_i8(address_t address) {
     uint8_t value = memory[address];
     return value &gt; 127 ? value - 256 : value;
 }
+int8_t mem_i8(address_t address) { return r_mem_i8(address); }
 
 // Reads a int16_t from memory starting at "address".
 int16_t r_mem_i16(address_t address) {
     uint16_t mem = r_mem_u16(address);
     return mem &gt; INT16_MAX ? mem - UINT16_MAX - 1 : mem;
 }
+int16_t mem_i16(address_t address) { return r_mem_i16(address); }
 
 // Reads a int32_t from memory starting at "address".
 int32_t r_mem_i32(address_t address) {
@@ -69,6 +73,7 @@ int32_t r_mem_i32(address_t address) {
         return (high - (UINT16_MAX + 1)) * (UINT16_MAX + 1) + low;
     }
 }
+int32_t mem_i32(address_t address) { return r_mem_i32(address); }
 
 // Writes an int32_t from memory starting at "address"
 void w_mem_i32(address_t address, int32_t value) {
