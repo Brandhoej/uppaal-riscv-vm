@@ -426,7 +426,7 @@ void unique_read_registers(instruction_t previous, instruction_t current) {
 		<transition id="id2">
 			<source ref="id1"/>
 			<target ref="id0"/>
-			<label kind="select" x="-476" y="-144">bit: int[1, 7]</label>
+			<label kind="select" x="-476" y="-144">bit: int[0, 7]</label>
 			<label kind="assignment" x="-476" y="-127">memory[target] ^= 1 &lt;&lt; bit</label>
 			<nail x="-255" y="-145"/>
 			<nail x="-493" y="-145"/>
