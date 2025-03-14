@@ -41,17 +41,20 @@ class RISCVProgram:
     """
 
     __memory: int
+    __max_flips: int
 
     def __init__(
             self,
             symbols: List[Tuple[str, List[str]]],
             programs: List[Tuple[str, List[Tuple[str, str, str, str]]]],
             memory: int = 256,
+            max_flips: int = 1,
             assertions: List[Tuple[int, int, str]] = []
         ):
         self.__symbols = symbols
         self.__programs = programs
         self.__memory = memory
+        self.__max_flips = max_flips
         self.__assertions = assertions
 
     @property
@@ -66,6 +69,10 @@ class RISCVProgram:
     @property
     def memory(self) -> int:
         return self.__memory
+
+    @property
+    def max_flips(self) -> int:
+        return self.__max_flips
 
     @property
     def programs(self) -> List[Tuple[str, List[Tuple[str, str, str, str]]]]:
@@ -84,8 +91,13 @@ class RISCVProgram:
     def assertions(self) -> List[Tuple[int, int, str]]:
         return self.__assertions
 
+    def generated_max_flips(self) -> str:
+        # /* GENERATED: MAX_FLIPS */
+        # Example: "const int32_t MAX_FLIPS = 1;"
+        return f'const int32_t MAX_FLIPS = {self.__max_flips};'
+
     def generated_program_length(self) -> str:
-        # /* GENERATED: PROGRAM LENGTH */
+        # /* GENERATED: PROGRAM_LENGTH */
         # Example: "const int32_t PROGRAM_LENGTH = 8;"
         return f'const int32_t PROGRAM_LENGTH = {self.length};'
 
@@ -98,7 +110,7 @@ class RISCVProgram:
             labels.append(f'const pc_t {label} = {pc};')
         return '\n'.join(labels)
 
-    def generated_global_symbols(self) -> str: # TODO
+    def generated_global_symbols(self) -> str:
         # /* GENERATED: GLOBAL SYMBOLS */
         # Example: "const address_t g_authenticated = 0;"
         # Example: "const address_t g_authenticated = 2;"
@@ -109,6 +121,11 @@ class RISCVProgram:
             offset += RISCVProgram.symbol_size(lines)
         return '\n'.join(globals)
     
+    def generated_memory_length(self) -> str:
+        # /* GENERATED: MEMORY_LENGTH */
+        # Example: "const int32_t MEMORY_LENGTH = 64;"
+        return f'const int32_t MEMORY_LENGTH = {self.__memory};'
+
     def generated_memory_initialisation(self) -> str:
         # g_ptc:
         #         .word   32
@@ -167,15 +184,16 @@ class RISCVProgram:
             content = file.read()
 
         content = content.replace('/* GENERATED: LABELS */', self.generated_labels() + '\n')
-        content = content.replace('/* GENERATED: GLOBAL SYMBOLS */', self.generated_global_symbols() + '\n')
-        content = content.replace('/* GENERATED: PROGRAM LENGTH */', self.generated_program_length() + '\n')
+        content = content.replace('/* GENERATED: GLOBAL_SYMBOLS */', self.generated_global_symbols() + '\n')
+        content = content.replace('/* GENERATED: PROGRAM_LENGTH */', self.generated_program_length() + '\n')
         content = content.replace('/* GENERATED: PROGRAM */', self.generated_program() + '\n')
-        content = content.replace('/* GENERATED: MEMORY INITIALISATION */', self.generated_memory_initialisation() + '\n')
-        content = content.replace('/* GENERATED: MEMORY_LENGTH */', str(self.memory))
+        content = content.replace('/* GENERATED: MEMORY_INITIALISATION */', self.generated_memory_initialisation() + '\n')
+        content = content.replace('/* GENERATED: MEMORY_LENGTH */', self.generated_memory_length() + '\n')
+        content = content.replace('/* GENERATED: MAX_FLIPS */', self.generated_max_flips() + '\n')
 
         with open(template, 'w') as file:
             file.write(content)
-        
+    
     @staticmethod
     def is_instruction(line: str) -> bool:
         # For now I believe it is sufficient to check if it starts with a '.' or not.
@@ -224,7 +242,7 @@ class RISCVProgram:
         return sum(RISCVProgram.data_size(line) for line in lines)
 
     @staticmethod
-    def parse(path: str, memory: int) -> "RISCVProgram":
+    def parse(path: str, memory: int, max_flips: int) -> "RISCVProgram":
         # First we parse the file into segments which are seperated by an identifier such as "g_ptc"
         # or "verifyPIN:" - the pattern is that they all end with ":". The proceeding line as then
         # bundled into the segment which we then process later.
@@ -252,7 +270,7 @@ class RISCVProgram:
             program = RISCVProgram.parse_program(segments[index])
             programs.append(program)
 
-        return RISCVProgram(symbols, programs, memory, assertions)
+        return RISCVProgram(symbols, programs, memory, max_flips, assertions)
 
     @staticmethod
     def parse_program(segment: Tuple[str, List[str]]) -> Tuple[str, List[Tuple[str, str, str, str]]]:
@@ -430,9 +448,13 @@ def main():
         '-m', '--memory', type=int, default=256,
         help="The memory allocated for the program."
     )
+    parser.add_argument(
+        '-f', '--flips', type=int, default=1,
+        help="The number of flips an attacker can perform."
+    )
     
     args = parser.parse_args()
-    program = RISCVProgram.parse(args.file, args.memory)
+    program = RISCVProgram.parse(args.file, args.memory, args.flips)
 
     # Copy the template at --template and save to --output.
     # Then fill the copied template with the generated code.

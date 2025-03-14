@@ -13,6 +13,11 @@ void todo() { panic(); }
  *        unintential side-effects when unsigned arithmetic should be used
  */
 
+/* Values for attacker */
+const int32_t MAX_FLIPS = 1;
+
+int flips = MAX_FLIPS;
+
 // Data filled in but auto-generator:
 typedef struct {
     int32_t code;
@@ -33,6 +38,7 @@ typedef struct {
 // Ergo. the stack starts at the greatest index. The data starts at
 //    the smallest index. The heap starts right after the data.
 const int32_t MEMORY_LENGTH = 256;
+
 typedef int[0, MEMORY_LENGTH] address_t;
 uint8_t memory[MEMORY_LENGTH];
 
@@ -84,6 +90,7 @@ void w_mem_i32(address_t address, int32_t value) {
 }
 
 const int32_t PROGRAM_LENGTH = 83;
+
 
 instruction_t program[PROGRAM_LENGTH];
 
@@ -267,7 +274,7 @@ void execute() {
         // Example: "{ SRAI_CODE, a4, a4, 24 }"
         registers[instruction.op1] = registers[instruction.op2] &gt;&gt; instruction.op3;
     } else if (instruction.code == ADD_CODE) {
-        // Implementation: reg[op1] = reg[op2] + op3
+        // Implementation: reg[op1] = reg[op2] + reg[op3]
         // Example: "add a5,a4,a5" op1=a5 op2=a4 op3=a5
         // Example: "{ ADD_CODE, a5, a4, a5 }"
         registers[instruction.op1] = registers[instruction.op2] + registers[instruction.op3];
@@ -316,6 +323,47 @@ void execute() {
     }
 }
 
+bool valid_instruction() {
+    // Arithemtic Errors: ADD, ADDI
+
+    if (instruction.code == J_CODE) {
+        // Implementation: pc = lab[op1]
+        return (instruction.op1 &gt;= 0 &amp;&amp; instruction.op1 &lt; PROGRAM_LENGTH);
+    } else if (instruction.code == SW_CODE || instruction.code == SB_CODE ||
+                instruction.code == LW_CODE || instruction.code == LBU_CODE ||
+                instruction.code == LB_CODE) {
+        //  Implementation SW: mem[reg[op2] + op3] = reg[op1]
+        //  Implementation SB: mem[reg[op2] + op3 = reg[op1][7:0]
+        //  Implementation LW: reg[op1] = mem[reg[op2] + op3]
+        //  Implementation LB: reg[op1] = mem[reg[op2] + op3]
+        // Implementation LBU: reg[op1] = mem[reg[op2] + op3][7:0]
+        int32_t address = registers[instruction.op2] + instruction.op3;
+        return (address &gt;= 0 &amp;&amp; address &lt; MEMORY_LENGTH);
+    } else if (instruction.code == ADD_CODE || instruction.code == ADDI_CODE) {
+        //  Implementation ADD: reg[op1] = reg[op2] + reg[op3]
+        // Implementation ADDI: reg[op1] = reg[op2] + op3
+
+        int32_t lhs = registers[instruction.op2];
+        int32_t rhs = instruction.op3;
+        if (instruction.code == ADD_CODE) {
+            rhs = registers[instruction.op3];
+        }
+
+        // Do we overflow?
+        if (rhs &gt; 0) {
+            return rhs &lt;= (INT32_MAX - lhs);
+        } else if (rhs &lt; 0) {
+            if (lhs &gt;= 0)
+                return rhs &gt;= (INT32_MIN + lhs);
+            else
+                return rhs &lt; INT32_MIN - lhs;
+                // return rhs &gt;= (INT32_MAX + (lhs * -1));
+        }
+    }
+
+    return true;
+}
+
 // An optional register index which allows NONE_REGISTER.
 typedef int[-1, 31] opt_register_t;
 const opt_register_t NONE_REGISTER = -1;
@@ -349,6 +397,43 @@ void unique_read_registers(instruction_t previous, instruction_t current) {
     write_registers(previous);
     read_registers(current);
 }</declaration>
+	<template>
+		<name>RegisterCorruption</name>
+		<declaration>register_t register;
+
+
+int pwr(int num, int pwr){
+    int res = 1;
+    if(pwr == 0)
+        return res;
+    while(pwr &gt; 0){
+        res = res * num;
+        pwr--;
+    }
+    return res;
+}</declaration>
+		<location id="id0" x="-204" y="-161">
+		</location>
+		<location id="id1" x="17" y="-161">
+			<committed/>
+		</location>
+		<init ref="id0"/>
+		<transition id="id2">
+			<source ref="id1"/>
+			<target ref="id0"/>
+			<label kind="select" x="-187" y="-93">flip_val : int[0, 8]</label>
+			<label kind="assignment" x="-187" y="-76">registers[register] = registers[register] ^ pwr(2, flip_val)</label>
+			<nail x="17" y="-102"/>
+			<nail x="-204" y="-102"/>
+		</transition>
+		<transition id="id3">
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="select" x="-187" y="-221">reg: register_t</label>
+			<label kind="guard" x="-188" y="-204">flips &gt; 0</label>
+			<label kind="assignment" x="-189" y="-187">register = reg, flips--</label>
+		</transition>
+	</template>
 	<template>
 		<name x="5" y="5">VM</name>
 		<declaration>// Automatically generated.
@@ -539,48 +624,162 @@ memory[10] = 4; // 3'it byte of g_cardPin
     registers[sp] = MEMORY_LENGTH - 1;
     pc = 0;
 }</declaration>
-		<location id="id0" x="-629" y="68">
+		<location id="id4" x="-629" y="68">
+			<name x="-612" y="59">FETCHING</name>
 		</location>
-		<location id="id1" x="-527" y="68">
+		<location id="id5" x="-408" y="68">
+			<name x="-501" y="59">EXECUTING</name>
 		</location>
-		<location id="id2" x="-739" y="68">
+		<location id="id6" x="-739" y="68">
 		</location>
-		<init ref="id2"/>
-		<transition id="id3">
-			<source ref="id2"/>
-			<target ref="id0"/>
+		<location id="id7" x="-883" y="136">
+			<name x="-900" y="144">DONE</name>
+			<committed/>
+		</location>
+		<location id="id8" x="-195" y="68">
+			<name x="-204" y="85">ERR</name>
+			<committed/>
+		</location>
+		<init ref="id6"/>
+		<transition id="id9">
+			<source ref="id5"/>
+			<target ref="id8"/>
+			<label kind="guard" x="-382" y="42">!valid_instruction()</label>
+		</transition>
+		<transition id="id10">
+			<source ref="id4"/>
+			<target ref="id7"/>
+			<label kind="guard" x="-858" y="136">pc == PROGRAM_LENGTH - 1</label>
+			<nail x="-654" y="136"/>
+		</transition>
+		<transition id="id11">
+			<source ref="id6"/>
+			<target ref="id4"/>
 			<label kind="assignment" x="-714" y="51">setup()</label>
 		</transition>
-		<transition id="id4">
-			<source ref="id1"/>
-			<target ref="id0"/>
-			<label kind="assignment" x="-612" y="110">execute()</label>
-			<nail x="-527" y="110"/>
+		<transition id="id12">
+			<source ref="id5"/>
+			<target ref="id4"/>
+			<label kind="guard" x="-629" y="110">valid_instruction()</label>
+			<label kind="assignment" x="-629" y="127">execute()</label>
+			<nail x="-408" y="110"/>
 			<nail x="-629" y="110"/>
 		</transition>
-		<transition id="id5">
-			<source ref="id0"/>
-			<target ref="id1"/>
-			<label kind="guard" x="-663" y="0">pc &lt; PROGRAM_LENGTH</label>
-			<label kind="assignment" x="-612" y="17">fetch()</label>
+		<transition id="id13">
+			<source ref="id4"/>
+			<target ref="id5"/>
+			<label kind="guard" x="-620" y="-8">pc &lt; PROGRAM_LENGTH</label>
+			<label kind="assignment" x="-620" y="9">fetch()</label>
 			<nail x="-629" y="34"/>
-			<nail x="-527" y="34"/>
+			<nail x="-408" y="34"/>
 		</transition>
 	</template>
 	<system>// Place template instantiations here.
 vm = VM();
+rc = RegisterCorruption();
 // List one or more processes to be composed into a system.
-system vm;
+system vm, rc;
 </system>
 	<queries>
+		<option key="--diagnostic" value="0"/>
 		<query>
-			<formula/>
-			<comment>// Just to make sure that the VM does not have any internal logic errors.</comment>
+			<formula>// Checks that it is possible for the VM to finish execution.</formula>
+			<comment/>
 		</query>
 		<query>
-			<formula>E&lt;&gt; !vm.test_failure</formula>
+			<formula>E&lt;&gt; vm.DONE</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-10 19:08:01 +0100">
+			<result outcome="success" type="quality" timestamp="2025-03-14 13:55:39 +0100">
+				<option key="--diagnostic" value="0"/>
+			</result>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula>// Checks if the VM is about to execute a fetched instruction leading to an error.</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.ERR</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2025-03-14 13:55:39 +0100">
+				<option key="--diagnostic" value="0"/>
+			</result>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula>// Checks if it is possible to be authenticated (170 for HB).</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 1</formula>
+			<comment/>
+			<result outcome="failure" type="quality" timestamp="2025-03-14 13:55:40 +0100">
+				<option key="--diagnostic" value="0"/>
+			</result>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2025-03-14 13:55:40 +0100">
+				<option key="--diagnostic" value="0"/>
+			</result>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula>// Checks if it is possible to be undetected and authenticated.</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170 &amp;&amp; mem_u8(g_countermeasure) == 0</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2025-03-14 13:55:41 +0100">
+				<option key="--diagnostic" value="0"/>
+			</result>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula>// Checks if it is possible to not decrease the number of tries (PTC) when failed.</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) != 170 &amp;&amp; mem_u8(g_ptc) &gt;= 3</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2025-03-14 13:55:41 +0100">
+				<option key="--diagnostic" value="0"/>
+			</result>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula>// Checks if it is possible to increase the number of tries (PTC)</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_ptc) &gt; 3</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2025-03-14 13:55:42 +0100">
+				<option key="--diagnostic" value="0"/>
+			</result>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_ptc) &gt; 3 &amp;&amp; mem_u8(g_countermeasure) == 0</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2025-03-14 13:55:42 +0100">
+				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
 	</queries>
