@@ -186,10 +186,11 @@ instruction_t instruction;
 
 void fetch() {
     instruction = program[pc];
-    pc += 1;
 }
 
 void execute() {
+    pc += 1;
+
     if (instruction.code == ADDI_CODE) {
         // Implementation: reg[op1] = reg[op2] + op3
         // Example: "addi a5,a4,1" op1=a5 op2=a4 op3=1
@@ -316,6 +317,40 @@ void execute() {
     } else {
         panic(); // Unknown instruction type.
     }
+}
+
+// An optional register index which allows NONE_REGISTER.
+typedef int[-1, 31] opt_register_t;
+const opt_register_t NONE_REGISTER = -1;
+
+// An instruction can have at most two (2) reads from a register.
+// Examples are "ADD_CODE" and "BNE_CODE".
+const int MAX_READ_REGISTERS = 2;
+
+// An instruction can have at most a single write to a register.
+// Examples are "ANDI_CODE" and "LI_CODE"
+const int MAX_WRITE_REGISTERS = 1;
+
+// Computes the registers which an instruction reads from.
+opt_register_t res_read_registers[MAX_READ_REGISTERS];
+void read_registers(instruction_t instruction) {
+    // TODO: Implement this per register:
+    res_read_registers[0] = NONE_REGISTER;
+    res_read_registers[1] = NONE_REGISTER;
+}
+
+// Computes the registers which an instructions writes to.
+opt_register_t res_write_registers[MAX_WRITE_REGISTERS];
+void write_registers(instruction_t instruction) {
+    // TODO: Implement this per register:
+    res_write_registers[0] = NONE_REGISTER;
+}
+
+// Returns the registers which are uniquely read from and not just previously written to.
+opt_register_t res_unique_read_registers[MAX_READ_REGISTERS];
+void unique_read_registers(instruction_t previous, instruction_t current) {
+    write_registers(previous);
+    read_registers(current);
 }</declaration>
 	<template>
 		<name x="5" y="5">VM</name>
