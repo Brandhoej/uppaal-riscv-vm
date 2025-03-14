@@ -39,7 +39,7 @@ typedef struct {
 //    the smallest index. The heap starts right after the data.
 const int32_t MEMORY_LENGTH = 64;
 
-typedef int[0, MEMORY_LENGTH] address_t;
+typedef int[0, MEMORY_LENGTH - 1] address_t;
 uint8_t memory[MEMORY_LENGTH];
 
 // Reads a uint8_t from memory starting at "address".
@@ -106,7 +106,7 @@ const int32_t PROGRAM_LENGTH = 83;
 instruction_t program[PROGRAM_LENGTH];
 
 // The program counter (PC) to keep track of which instruction to execute.
-typedef int[0, PROGRAM_LENGTH] pc_t;
+typedef int[0, PROGRAM_LENGTH - 1] pc_t;
 pc_t pc = 0;
 
 const pc_t verifyPIN = 0;
