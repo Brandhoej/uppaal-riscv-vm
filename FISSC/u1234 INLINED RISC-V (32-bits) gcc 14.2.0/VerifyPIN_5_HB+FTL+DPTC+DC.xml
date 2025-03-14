@@ -805,9 +805,6 @@ system vm, rc;
 		<query>
 			<formula>E&lt;&gt; vm.DONE</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-14 13:55:39 +0100">
-				<option key="--diagnostic" value="0"/>
-			</result>
 		</query>
 		<query>
 			<formula/>
@@ -820,9 +817,6 @@ system vm, rc;
 		<query>
 			<formula>E&lt;&gt; vm.ERR</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-14 13:55:39 +0100">
-				<option key="--diagnostic" value="0"/>
-			</result>
 		</query>
 		<query>
 			<formula/>
@@ -835,16 +829,10 @@ system vm, rc;
 		<query>
 			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 1</formula>
 			<comment/>
-			<result outcome="failure" type="quality" timestamp="2025-03-14 13:55:40 +0100">
-				<option key="--diagnostic" value="0"/>
-			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-14 13:55:40 +0100">
-				<option key="--diagnostic" value="0"/>
-			</result>
 		</query>
 		<query>
 			<formula/>
@@ -857,9 +845,6 @@ system vm, rc;
 		<query>
 			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170 &amp;&amp; mem_u8(g_countermeasure) == 0</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-14 13:55:41 +0100">
-				<option key="--diagnostic" value="0"/>
-			</result>
 		</query>
 		<query>
 			<formula/>
@@ -872,9 +857,6 @@ system vm, rc;
 		<query>
 			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) != 170 &amp;&amp; mem_u8(g_ptc) &gt;= 3</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-14 13:55:41 +0100">
-				<option key="--diagnostic" value="0"/>
-			</result>
 		</query>
 		<query>
 			<formula/>
@@ -887,16 +869,10 @@ system vm, rc;
 		<query>
 			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_ptc) &gt; 3</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-14 13:55:42 +0100">
-				<option key="--diagnostic" value="0"/>
-			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_ptc) &gt; 3 &amp;&amp; mem_u8(g_countermeasure) == 0</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-14 13:55:42 +0100">
-				<option key="--diagnostic" value="0"/>
-			</result>
 		</query>
 	</queries>
 </nta>
