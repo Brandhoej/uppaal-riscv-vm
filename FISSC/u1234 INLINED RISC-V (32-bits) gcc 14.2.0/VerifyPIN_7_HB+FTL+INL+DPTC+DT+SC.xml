@@ -132,6 +132,8 @@ const pc_t L16 = 176;
 const pc_t L2 = 180;
 const pc_t L21 = 181;
 
+const int32_t GLOBAL_SYMBOLS_SIZE = 11;
+
 const address_t g_countermeasure = 0;
 const address_t g_ptc = 1;
 const address_t g_authenticated = 2;

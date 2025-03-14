@@ -108,6 +108,7 @@ typedef int[0, PROGRAM_LENGTH] pc_t;
 pc_t pc = 0;
 
 /* GENERATED: LABELS */
+/* GENERATED: GLOBAL_SYMBOLS_SIZE */
 /* GENERATED: GLOBAL_SYMBOLS */
 
 /* Documentation */

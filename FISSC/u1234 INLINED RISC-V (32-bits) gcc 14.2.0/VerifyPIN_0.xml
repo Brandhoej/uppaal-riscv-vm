@@ -119,6 +119,8 @@ const pc_t L7 = 47;
 const pc_t L2 = 58;
 const pc_t L8 = 59;
 
+const int32_t GLOBAL_SYMBOLS_SIZE = 10;
+
 const address_t g_ptc = 0;
 const address_t g_authenticated = 1;
 const address_t g_userPin = 2;

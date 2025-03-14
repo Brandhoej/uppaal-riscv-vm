@@ -120,6 +120,8 @@ const pc_t L9 = 64;
 const pc_t L2 = 68;
 const pc_t L8 = 69;
 
+const int32_t GLOBAL_SYMBOLS_SIZE = 11;
+
 const address_t g_countermeasure = 0;
 const address_t g_ptc = 1;
 const address_t g_authenticated = 2;

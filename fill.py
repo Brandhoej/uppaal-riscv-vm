@@ -67,6 +67,10 @@ class RISCVProgram:
         return self.__symbols
 
     @property
+    def symbols_size(self) -> int:
+        return sum(RISCVProgram.symbol_size(lines) for _, lines in self.__symbols)
+
+    @property
     def memory(self) -> int:
         return self.__memory
 
@@ -100,6 +104,11 @@ class RISCVProgram:
         # /* GENERATED: PROGRAM_LENGTH */
         # Example: "const int32_t PROGRAM_LENGTH = 8;"
         return f'const int32_t PROGRAM_LENGTH = {self.length};'
+
+    def generated_global_symbols_size(self) -> str:
+        # /* GENERATED: GLOBAL_SYMBOLS_SIZE */
+        # Example: "const int32_t GLOBAL_SYMBOLS_SIZE = 8;"
+        return f'const int32_t GLOBAL_SYMBOLS_SIZE = {self.symbols_size};'
 
     def generated_labels(self) -> str:
         # /* GENERATED: PC LABELS */
@@ -186,6 +195,7 @@ class RISCVProgram:
         content = content.replace('/* GENERATED: LABELS */', self.generated_labels() + '\n')
         content = content.replace('/* GENERATED: GLOBAL_SYMBOLS */', self.generated_global_symbols() + '\n')
         content = content.replace('/* GENERATED: PROGRAM_LENGTH */', self.generated_program_length() + '\n')
+        content = content.replace('/* GENERATED: GLOBAL_SYMBOLS_SIZE */', self.generated_global_symbols_size() + '\n')
         content = content.replace('/* GENERATED: PROGRAM */', self.generated_program() + '\n')
         content = content.replace('/* GENERATED: MEMORY_INITIALISATION */', self.generated_memory_initialisation() + '\n')
         content = content.replace('/* GENERATED: MEMORY_LENGTH */', self.generated_memory_length() + '\n')
