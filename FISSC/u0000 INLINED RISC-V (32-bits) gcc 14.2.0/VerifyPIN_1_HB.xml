@@ -106,7 +106,8 @@ const int32_t PROGRAM_LENGTH = 73;
 instruction_t program[PROGRAM_LENGTH];
 
 // The program counter (PC) to keep track of which instruction to execute.
-typedef int[0, PROGRAM_LENGTH - 1] pc_t;
+// We allow the pc_t to exceed the PROGRAM_LENGTH by one to check when we are done.
+typedef int[0, PROGRAM_LENGTH] pc_t;
 pc_t pc = 0;
 
 const pc_t verifyPIN = 0;
