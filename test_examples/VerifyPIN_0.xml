@@ -406,25 +406,50 @@ void unique_read_registers(instruction_t previous, instruction_t current) {
     read_registers(current);
 }</declaration>
 	<template>
-		<name>MemoryCorruption</name>
+		<name>StackCorruption</name>
 		<declaration>address_t target;</declaration>
-		<location id="id0" x="-493" y="-204">
+		<location id="id0" x="-255" y="-42">
 		</location>
-		<location id="id1" x="-255" y="-204">
+		<location id="id1" x="85" y="-42">
 			<committed/>
 		</location>
 		<init ref="id0"/>
 		<transition id="id2">
 			<source ref="id1"/>
 			<target ref="id0"/>
+			<label kind="select" x="-238" y="18">bit: int[0, 7]</label>
+			<label kind="assignment" x="-238" y="35">memory[target] ^= 1 &lt;&lt; bit</label>
+			<nail x="85" y="17"/>
+			<nail x="-255" y="17"/>
+		</transition>
+		<transition id="id3">
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="select" x="-238" y="-102">address: address_t</label>
+			<label kind="guard" x="-239" y="-85">address &gt;= registers[sp] &amp;&amp; flips &gt; 0</label>
+			<label kind="assignment" x="-240" y="-68">target = address, flips--</label>
+		</transition>
+	</template>
+	<template>
+		<name>MemoryCorruption</name>
+		<declaration>address_t target;</declaration>
+		<location id="id4" x="-493" y="-204">
+		</location>
+		<location id="id5" x="-255" y="-204">
+			<committed/>
+		</location>
+		<init ref="id4"/>
+		<transition id="id6">
+			<source ref="id5"/>
+			<target ref="id4"/>
 			<label kind="select" x="-476" y="-144">bit: int[0, 7]</label>
 			<label kind="assignment" x="-476" y="-127">memory[target] ^= 1 &lt;&lt; bit</label>
 			<nail x="-255" y="-145"/>
 			<nail x="-493" y="-145"/>
 		</transition>
-		<transition id="id3">
-			<source ref="id0"/>
-			<target ref="id1"/>
+		<transition id="id7">
+			<source ref="id4"/>
+			<target ref="id5"/>
 			<label kind="select" x="-476" y="-264">address: address_t</label>
 			<label kind="guard" x="-477" y="-247">flips &gt; 0</label>
 			<label kind="assignment" x="-478" y="-230">target = address, flips--</label>
@@ -445,23 +470,23 @@ int pwr(int num, int pwr){
     }
     return res;
 }</declaration>
-		<location id="id4" x="-204" y="-161">
+		<location id="id8" x="-204" y="-161">
 		</location>
-		<location id="id5" x="17" y="-161">
+		<location id="id9" x="17" y="-161">
 			<committed/>
 		</location>
-		<init ref="id4"/>
-		<transition id="id6">
-			<source ref="id5"/>
-			<target ref="id4"/>
+		<init ref="id8"/>
+		<transition id="id10">
+			<source ref="id9"/>
+			<target ref="id8"/>
 			<label kind="select" x="-187" y="-93">flip_val : int[0, 8]</label>
 			<label kind="assignment" x="-187" y="-76">registers[register] = registers[register] ^ pwr(2, flip_val)</label>
 			<nail x="17" y="-102"/>
 			<nail x="-204" y="-102"/>
 		</transition>
-		<transition id="id7">
-			<source ref="id4"/>
-			<target ref="id5"/>
+		<transition id="id11">
+			<source ref="id8"/>
+			<target ref="id9"/>
 			<label kind="select" x="-187" y="-221">reg: register_t</label>
 			<label kind="guard" x="-188" y="-204">flips &gt; 0</label>
 			<label kind="assignment" x="-189" y="-187">register = reg, flips--</label>
@@ -616,50 +641,50 @@ memory[9] = 0; // 3'it byte of g_cardPin
     registers[sp] = MEMORY_LENGTH - 1;
     pc = 0;
 }</declaration>
-		<location id="id8" x="-629" y="68">
+		<location id="id12" x="-629" y="68">
 			<name x="-612" y="59">FETCHING</name>
 		</location>
-		<location id="id9" x="-408" y="68">
+		<location id="id13" x="-408" y="68">
 			<name x="-501" y="59">EXECUTING</name>
 		</location>
-		<location id="id10" x="-739" y="68">
+		<location id="id14" x="-739" y="68">
 		</location>
-		<location id="id11" x="-883" y="136">
+		<location id="id15" x="-883" y="136">
 			<name x="-900" y="144">DONE</name>
 			<committed/>
 		</location>
-		<location id="id12" x="-195" y="68">
+		<location id="id16" x="-195" y="68">
 			<name x="-204" y="85">ERR</name>
 			<committed/>
 		</location>
-		<init ref="id10"/>
-		<transition id="id13">
-			<source ref="id9"/>
-			<target ref="id12"/>
+		<init ref="id14"/>
+		<transition id="id17">
+			<source ref="id13"/>
+			<target ref="id16"/>
 			<label kind="guard" x="-382" y="42">!valid_instruction()</label>
 		</transition>
-		<transition id="id14">
-			<source ref="id8"/>
-			<target ref="id11"/>
+		<transition id="id18">
+			<source ref="id12"/>
+			<target ref="id15"/>
 			<label kind="guard" x="-858" y="136">pc == PROGRAM_LENGTH - 1</label>
 			<nail x="-654" y="136"/>
 		</transition>
-		<transition id="id15">
-			<source ref="id10"/>
-			<target ref="id8"/>
+		<transition id="id19">
+			<source ref="id14"/>
+			<target ref="id12"/>
 			<label kind="assignment" x="-714" y="51">setup()</label>
 		</transition>
-		<transition id="id16">
-			<source ref="id9"/>
-			<target ref="id8"/>
+		<transition id="id20">
+			<source ref="id13"/>
+			<target ref="id12"/>
 			<label kind="guard" x="-629" y="110">valid_instruction()</label>
 			<label kind="assignment" x="-629" y="127">execute()</label>
 			<nail x="-408" y="110"/>
 			<nail x="-629" y="110"/>
 		</transition>
-		<transition id="id17">
-			<source ref="id8"/>
-			<target ref="id9"/>
+		<transition id="id21">
+			<source ref="id12"/>
+			<target ref="id13"/>
 			<label kind="guard" x="-620" y="-8">pc &lt; PROGRAM_LENGTH</label>
 			<label kind="assignment" x="-620" y="9">fetch()</label>
 			<nail x="-629" y="34"/>
@@ -670,8 +695,9 @@ memory[9] = 0; // 3'it byte of g_cardPin
 vm = VM();
 rc = RegisterCorruption();
 mc = MemoryCorruption();
+sc = StackCorruption();
 // List one or more processes to be composed into a system.
-system vm, rc, mc;
+system vm, rc, mc, sc;
 </system>
 	<queries>
 		<option key="--diagnostic" value="0"/>
