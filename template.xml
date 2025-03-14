@@ -79,7 +79,18 @@ int32_t r_mem_i32(address_t address) {
 }
 int32_t mem_i32(address_t address) { return r_mem_i32(address); }
 
-// Writes an int32_t from memory starting at "address"
+// Writes an int8_t to memory starting at "address".
+void w_mem_i8(address_t address, int32_t value) {
+    memory[address] = value &amp; 255;
+}
+
+// Writes an int16_t to memory starting at "address".
+void w_mem_i16(address_t address, int32_t value) {
+    memory[address + 0] = (value &gt;&gt; 8) &amp; 255;
+    memory[address + 1] = (value &gt;&gt; 0) &amp; 255;
+}
+
+// Writes an int32_t to memory starting at "address".
 void w_mem_i32(address_t address, int32_t value) {
     memory[address + 0] = (value &gt;&gt; 24)  &amp; 255;
     memory[address + 1] = (value &gt;&gt; 16)  &amp; 255;
@@ -198,10 +209,10 @@ void execute() {
         // Example: "{ LUI_CODE, a5, symbol_high(g_cardPin), 0 }"
         registers[instruction.op1] = instruction.op2;
     } else if (instruction.code == SB_CODE) {
-        // Implementation: mem[reg[op2] + op3 = reg[op1][7:0]
+        // Implementation: mem[reg[op2] + op3] = reg[op1][7:0]
         // Example: "a4,%lo(g_ptc)(a5)" op1=a4 op2=a5 op3=symbol_low(g_ptc)
         // Example: "{ SB_CODE, a5, s0, -25 }"
-        memory[registers[instruction.op2] + instruction.op3] = registers[instruction.op1] &amp; 255;
+        w_mem_i8(registers[instruction.op2] + instruction.op3, registers[instruction.op1] &amp; 255); // HERE!
     } else if (instruction.code == J_CODE) {
         // Note: This is a pseudo-instruction.
         // Implementation: pc = lab[op1]
@@ -219,7 +230,7 @@ void execute() {
         // Implementation: reg[op1] = mem[reg[op2] + op3]
         // Example: "a5,%lo(g_ptc)(a5)" op1=a5 op2=a5 op3=symbol_low(g_ptc)
         // Example: "{ LB_CODE, a5, a5, symbol_low(g_ptc) }"
-        registers[instruction.op1] = memory[registers[instruction.op2] + instruction.op3];
+        registers[instruction.op1] = r_mem_i8(registers[instruction.op2] + instruction.op3);
     } else if (instruction.code == BLE_CODE) {
         // Note: This is a pseudo-instruction.
         // Implementation: if reg[op1] &lt;= reg[op2] then pc = lab[op3]
@@ -264,7 +275,7 @@ void execute() {
         // Implementation: reg[op1] = mem[reg[op2] + op3][7:0]
         // Example: "lbu a4,-26(s0)" op1=a4 op2=s0 op3=-26
         // Example: "{ LBU_CODE, a5, s0, -25 }"
-        registers[instruction.op1] = memory[registers[instruction.op2] + instruction.op3] &amp; 255;
+        registers[instruction.op1] = r_mem_u8(registers[instruction.op2] + instruction.op3);
     } else if (instruction.code == BNE_CODE) {
         // Implementation: if reg[op1] != reg[op2] then pc = lab[op3]
         // Example: "bne a4,a5,.L18" op1=14 op2=a5 op3=L18
@@ -306,21 +317,20 @@ void execute() {
 }
 
 bool valid_instruction() {
-    // Arithemtic Errors: ADD, ADDI
-
     if (instruction.code == J_CODE) {
         // Implementation: pc = lab[op1]
         return (instruction.op1 &gt;= 0 &amp;&amp; instruction.op1 &lt; PROGRAM_LENGTH);
-    } else if (instruction.code == SW_CODE || instruction.code == SB_CODE ||
-                instruction.code == LW_CODE || instruction.code == LBU_CODE ||
-                instruction.code == LB_CODE) {
-        //  Implementation SW: mem[reg[op2] + op3] = reg[op1]
-        //  Implementation SB: mem[reg[op2] + op3 = reg[op1][7:0]
-        //  Implementation LW: reg[op1] = mem[reg[op2] + op3]
+    } else if (instruction.code == SB_CODE || instruction.code == LBU_CODE || instruction.code == LB_CODE) {
+        //  Implementation SB: mem[reg[op2] + op3] = reg[op1][7:0]
         //  Implementation LB: reg[op1] = mem[reg[op2] + op3]
         // Implementation LBU: reg[op1] = mem[reg[op2] + op3][7:0]
         int32_t address = registers[instruction.op2] + instruction.op3;
         return (address &gt;= 0 &amp;&amp; address &lt; MEMORY_LENGTH);
+    }  else if (instruction.code == LW_CODE || instruction.code == SW_CODE) {
+        // Implementation SW: mem[reg[op2] + op3] = reg[op1]
+        // Implementation LW: reg[op1] = mem[reg[op2] + op3]
+        int32_t address = registers[instruction.op2] + instruction.op3;
+        return (address &gt;= 0 &amp;&amp; address &lt; MEMORY_LENGTH - 4);
     } else if (instruction.code == ADD_CODE || instruction.code == ADDI_CODE) {
         //  Implementation ADD: reg[op1] = reg[op2] + reg[op3]
         // Implementation ADDI: reg[op1] = reg[op2] + op3
