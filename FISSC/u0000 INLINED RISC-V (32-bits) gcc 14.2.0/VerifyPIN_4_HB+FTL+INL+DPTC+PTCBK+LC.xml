@@ -1035,7 +1035,7 @@ memory[10] = 4; // 3'it byte of g_cardPin
 		<transition id="id39">
 			<source ref="id33"/>
 			<target ref="id36"/>
-			<label kind="guard" x="-1113" y="-722">pc == PROGRAM_LENGTH - 1</label>
+			<label kind="guard" x="-1113" y="-722">pc == PROGRAM_LENGTH</label>
 			<label kind="synchronisation" x="-1113" y="-705">finished!</label>
 			<nail x="-909" y="-722"/>
 		</transition>
