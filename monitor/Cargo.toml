@@ -1,0 +1,10 @@
+[package]
+name = "monitor"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+# a library to be linked dynamically into non-Rust programs.
+crate-type = ["cdylib"]
+
+[dependencies]
