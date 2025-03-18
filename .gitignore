@@ -1,3 +1,6 @@
 .venv/*
 __pycache__/*
 monitor/target/**
+monitor/debug/**
+monitor/target/**
+monitor/**/*.rs.bk
