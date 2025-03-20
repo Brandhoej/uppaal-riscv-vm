@@ -482,7 +482,7 @@ def main():
         help="The number of flips an attacker can perform."
     )
     parser.add_argument(
-        '-p', '--pc', type=str, default=1,
+        '-p', '--pc', type=str, default='0',
         help="The number of flips an attacker can perform."
     )
     parser.add_argument(

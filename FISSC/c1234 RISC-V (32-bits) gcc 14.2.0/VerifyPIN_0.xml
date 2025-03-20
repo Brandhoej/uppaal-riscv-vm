@@ -51,7 +51,7 @@ typedef struct {
 // Ergo. the stack starts at the greatest index. The data starts at
 //    the smallest index. The heap starts right after the data.
 
-const int32_t MEMORY_LENGTH = 64;
+const int32_t MEMORY_LENGTH = 128;
 typedef int[0, MEMORY_LENGTH - 1] address_t;
 uint8_t memory[MEMORY_LENGTH];
 

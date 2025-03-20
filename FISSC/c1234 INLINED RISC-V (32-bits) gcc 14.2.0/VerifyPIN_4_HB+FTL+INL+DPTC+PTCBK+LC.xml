@@ -51,7 +51,7 @@ typedef struct {
 // Ergo. the stack starts at the greatest index. The data starts at
 //    the smallest index. The heap starts right after the data.
 
-const int32_t MEMORY_LENGTH = 512;
+const int32_t MEMORY_LENGTH = 64;
 typedef int[0, MEMORY_LENGTH - 1] address_t;
 uint8_t memory[MEMORY_LENGTH];
 
@@ -1472,7 +1472,7 @@ memory[10] = 4; // 3'it byte of g_cardPin
 
     // Init Stack Pointer (SP) and Program Counter (PC).
     registers[sp] = MEMORY_LENGTH - 1;
-    pc = 1;
+    pc = verifyPIN;
 }</declaration>
 		<location id="id82" x="-1598" y="-1232">
 			<name x="-1581" y="-1241">FETCHING</name>

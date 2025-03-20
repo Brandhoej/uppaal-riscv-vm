@@ -453,6 +453,7 @@ class TestRISCVProgramParse(unittest.TestCase):
 
         result = subprocess.run('./tests/test_verify_pin_queries.sh', capture_output=True, text=True).stdout
         self.assertFalse('NOT satisfied' in result, msg=result)
+        self.assertTrue('Formula is satisfied' in result, msg=result)
 
 if __name__ == '__main__':
     unittest.main()
