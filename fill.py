@@ -153,6 +153,9 @@ class RISCVProgram:
         # Example: "system vm /* GENERATED: FAULT_MODELS */;"
         # After replacement: "system vm, attacker, rc, pcf, is, mc, sc, gc, oorc, orc;"
 
+        if len(fault_models) == 0:
+            return ''
+
         if len(fault_models) > 0:
             fault_models.append('attacker')
 
@@ -234,7 +237,7 @@ class RISCVProgram:
         content = content.replace('/* GENERATED: MEMORY_LENGTH */', self.generated_memory_length(memory))
         content = content.replace('/* GENERATED: MAX_FLIPS */', self.generated_max_flips(max_flips))
         content = content.replace('/* GENERATED: INITIAL_PC */', self.generated_initial_pc(initial_pc))
-        content = content.replace('/* GENERATED: COOLDOWN */', self.generated_cooldown(initial_pc))
+        content = content.replace('/* GENERATED: COOLDOWN */', self.generated_cooldown(cooldown))
         content = content.replace('/* GENERATED: FAULT_MODELS */', self.generated_fault_models(fault_models))
         
         with open(template, 'w') as file:
@@ -529,7 +532,7 @@ def main():
         f"    {key} - {desc}" for key, desc in fault_model_descriptions.items()
     )
     parser.add_argument(
-        '-fm', '--fault_models', nargs='+', type=str,
+        '-fm', '--fault_models', nargs='+', type=str, default=[],
         choices=fault_model_descriptions.keys(),
         help=fault_model_help_text,
     )
