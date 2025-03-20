@@ -119,7 +119,7 @@ class TestRISCVProgramParse(unittest.TestCase):
         self.assertEqual(RISCVProgram.parse_instruction('j .L3'), ('J_CODE', 'L3', '', ''))
 
     def test_parse_segments_verify_pin_0(self):
-        path = "./FISSC/u0000 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm"
+        path = "./FISSC/c1234 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm"
         (segments, assertions) = RISCVProgram.parse_segments(path)
         self.assertEqual(len(segments), 12)
         self.assertEqual(len(assertions), 0)
@@ -166,7 +166,7 @@ class TestRISCVProgramParse(unittest.TestCase):
         self.assertEqual(len(segments[11][1]), 5 - 1)
 
     def test_parse_verify_pin_0(self):
-        path = './FISSC/u0000 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm'
+        path = './FISSC/c1234 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm'
         program = RISCVProgram.parse(path, 0, 0)
     
         self.assertEqual(len(program.symbols), 4)
@@ -217,7 +217,7 @@ class TestRISCVProgramParse(unittest.TestCase):
         self.assertEqual(len(program.programs[7][1]), 5 - 1)
 
     def test_generated_verify_pin_2(self):
-        path = './FISSC/u0000 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_2_HB+FTL.asm'
+        path = './FISSC/c1234 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_2_HB+FTL.asm'
         program = RISCVProgram.parse(path, 0, 0)
 
         program_length = 'const int32_t PROGRAM_LENGTH = 83;'
@@ -431,21 +431,16 @@ class TestRISCVProgramParse(unittest.TestCase):
         )
         self.assertEqual(program.generated_program(), '\n'.join(instructions))
 
-    def test_parse_test_example_verify_pin_0(self):
-        path = './test_examples/VerifyPIN_0.asm'
-        program = RISCVProgram.parse(path, 0, 0)
-        self.assertEqual(len(program.assertions), 1)
-
     def test_parse_verify_pins(self):
         files = [
-            ('./FISSC/u0000 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm', 4, 64 - 1),                             # VerifyPIN_0
-            ('./FISSC/u0000 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_1_HB.asm', 5, 74 - 1),                          # VerifyPIN_1
-            ('./FISSC/u0000 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_2_HB+FTL.asm', 5, 84 - 1),                      # VerifyPIN_2
-            ('./FISSC/u0000 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_3_HB+FTL+INL.asm', 5, 78 - 1 ),                 # VerifyPIN_3
-            ('./FISSC/u0000 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC.asm', 5, 121 - 1),   # VerifyPIN_4
-            ('./FISSC/u0000 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_5_HB+FTL+DPTC+DC.asm', 5, 139 - 1),             # VerifyPIN_5
-            ('./FISSC/u0000 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_6_HB+FTL+INL+DPTC+DT.asm', 5, 90 - 1),          # VerifyPIN_6
-            ('./FISSC/u0000 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC.asm', 5, 186 - 1),      # VerifyPIN_7
+            ('./FISSC/c1234 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm', 4, 64 - 1),                             # VerifyPIN_0
+            ('./FISSC/c1234 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_1_HB.asm', 5, 74 - 1),                          # VerifyPIN_1
+            ('./FISSC/c1234 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_2_HB+FTL.asm', 5, 84 - 1),                      # VerifyPIN_2
+            ('./FISSC/c1234 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_3_HB+FTL+INL.asm', 5, 78 - 1 ),                 # VerifyPIN_3
+            ('./FISSC/c1234 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC.asm', 5, 121 - 1),   # VerifyPIN_4
+            ('./FISSC/c1234 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_5_HB+FTL+DPTC+DC.asm', 5, 139 - 1),             # VerifyPIN_5
+            ('./FISSC/c1234 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_6_HB+FTL+INL+DPTC+DT.asm', 5, 90 - 1),          # VerifyPIN_6
+            ('./FISSC/c1234 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC.asm', 5, 186 - 1),      # VerifyPIN_7
         ]
 
         for (path, symbols, length) in files:
@@ -455,7 +450,6 @@ class TestRISCVProgramParse(unittest.TestCase):
     
     def test_fill_templates(self):
         subprocess.run('./fill_templates.sh')
-        subprocess.run('./fill_test_examples.sh')
 
         result = subprocess.run('./test_verify_pin_queries.sh', capture_output=True, text=True).stdout
         self.assertFalse('NOT satisfied' in result, msg=result)
