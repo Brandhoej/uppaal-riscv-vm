@@ -11,6 +11,9 @@ def v_print(text: str):
     if __verbose:
         print(text)
 
+def err_print(text: str):
+    print(f'ERROR: {text}')
+
 class RISCVProgram:
     __symbols: List[Tuple[str, List[str]]]
     """
@@ -458,7 +461,8 @@ class RISCVProgram:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="This script processes a RISC-V assembly file and generates an Uppaal model."
+        description="This script processes a RISC-V assembly file and generates an Uppaal model.",
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     
     parser.add_argument(
@@ -478,23 +482,51 @@ def main():
         help="The memory allocated for the program."
     )
     parser.add_argument(
-        '-f', '--flips', type=int, default=1,
+        '-f', '--flips', type=int, default=0,
         help="The number of flips an attacker can perform."
     )
     parser.add_argument(
         '-p', '--pc', type=str, default='0',
-        help="The number of flips an attacker can perform."
+        help="The initial PC of the simulation."
     )
     parser.add_argument(
         '-v', '--verbose', action='store_true',
         help='Enable verbose mode: print detailed step-by-step output to the terminal.'
     )
+
+    fault_model_descriptions = {
+        "RC": "RegisterCorruption: Bit-flips in arbritary CPU registers.",
+        "PCF": "PCFlip: Bit-flips in the Program Counter (PC).",
+        "IS": "InstructionSkip: Skips an instruction after execution by incrementing C by one.",
+        "MC": "MemoryCorruption: Bit-flips in arbritary memory.",
+        "SC": "StackCorruption: Bit-flips in the memory segment that is the stack at current time.",
+        "GC": "GlobalsCorruption: Bit-flips in the memory segment containing the global variables.",
+        "ORC": "OptimisedRegisterCorruption: Bit-flips on registers where an effect is guaranteed.",
+        "OORC": "ObsOptimisedRegisterCorruption: Bit-flips on write lie ORC but uses write to memory as observable actions.",
+    }
+    fault_model_help_text = "Select the type of fault models:\n" + "\n".join(
+        f"    {key} - {desc}" for key, desc in fault_model_descriptions.items()
+    )
+    parser.add_argument(
+        '-fm', '--fault_models', nargs='+', type=str,
+        choices=fault_model_descriptions.keys(),
+        help=fault_model_help_text,
+    )
     
     args = parser.parse_args()
 
-    # For nwo the verbose printing flag is globally set.
+    # For now the verbose printing flag is globally set.
     global __verbose
     __verbose = args.verbose
+
+    # Checks if we have a fault model but no flips can be done.
+    if args.flips > 0 and (args.fault_models is None or len(args.fault_models) == 0):
+        err_print(f"{args.flips} flip(s) requested, but no fault models were specified. Please provide at least one fault model.")
+        return
+
+    if args.fault_models is not None and len(args.fault_models) > 0 and args.flips == 0:
+        err_print(f"Fault model(s) specified ({args.fault_models}), but the number of flips is set to 0. Please set a positive number for flips.")
+        return
 
     program = RISCVProgram.parse(args.file, args.memory, args.flips, args.pc)
 
