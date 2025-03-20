@@ -1414,7 +1414,16 @@ runtime &gt;= execution_time(instruction.code)</label>
 		</transition>
 	</template>
 	<system>vm = VM();
-system vm;
+attacker = Attacker(verifyPIN);
+rc = RegisterCorruption();
+pcf = PCFlip();
+is = InstructionSkip();
+mc = MemoryCorruption();
+sc = StackCorruption();
+gc = GlobalsCorruption();
+oorc = ObsOptimisedRegisterCorruption();
+orc = OptimisedRegisterCorruption();
+system vm /* GENERATED: FAULT_MODELS */;
 </system>
 	<queries>
 		<option key="--diagnostic" value="0"/>

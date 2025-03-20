@@ -143,6 +143,23 @@ class RISCVProgram:
         # Example: "pc = verifyPIN;"
         return f'pc = {initial_pc};'
 
+    def generated_cooldown(self, cooldown: int) -> str:
+        # /* GENERATED: COOLDOWN */
+        # Example: "attacker = Attacker(/* GENERATED: COOLDOWN */);"
+        return f'{cooldown}'
+
+    def generated_fault_models(self, fault_models: List[str]) -> str:
+        # /* GENERATED: FAULT_MODELS */
+        # Example: "system vm /* GENERATED: FAULT_MODELS */;"
+        # After replacement: "system vm, attacker, rc, pcf, is, mc, sc, gc, oorc, orc;"
+
+        if len(fault_models) > 0:
+            fault_models.append('attacker')
+
+        fault_models = list(map(str.lower, fault_models))
+        network = ', '.join(fault_models)
+        return f', {network}'
+
     def generated_memory_initialisation(self) -> str:
         # g_ptc:
         #         .word   32
@@ -201,6 +218,7 @@ class RISCVProgram:
             initial_pc: str = '0',
             memory: int = 256,
             max_flips: int = 0,
+            cooldown: int = 0,
             fault_models: List[str] = [],
         ):
         content = ''
@@ -216,6 +234,9 @@ class RISCVProgram:
         content = content.replace('/* GENERATED: MEMORY_LENGTH */', self.generated_memory_length(memory))
         content = content.replace('/* GENERATED: MAX_FLIPS */', self.generated_max_flips(max_flips))
         content = content.replace('/* GENERATED: INITIAL_PC */', self.generated_initial_pc(initial_pc))
+        content = content.replace('/* GENERATED: COOLDOWN */', self.generated_cooldown(initial_pc))
+
+
 
         with open(template, 'w') as file:
             file.write(content)
@@ -542,6 +563,7 @@ def main():
         memory=args.memory,
         max_flips=args.flips,
         initial_pc=args.pc,
+        cooldown=args.cooldown,
         fault_models=args.fault_models,
     )
 
