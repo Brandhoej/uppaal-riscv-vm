@@ -451,7 +451,7 @@ class TestRISCVProgramParse(unittest.TestCase):
     def test_fill_templates(self):
         subprocess.run('./fill_templates.sh')
 
-        result = subprocess.run('./test_verify_pin_queries.sh', capture_output=True, text=True).stdout
+        result = subprocess.run('./tests/test_verify_pin_queries.sh', capture_output=True, text=True).stdout
         self.assertFalse('NOT satisfied' in result, msg=result)
 
 if __name__ == '__main__':
