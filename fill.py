@@ -1,4 +1,5 @@
 import shutil
+import os
 import argparse
 import re
 
@@ -557,9 +558,13 @@ def main():
 
     program = RISCVProgram.parse(args.file)
 
+    # Ensure the destination directory exists
+    os.makedirs(os.path.dirname(args.output), exist_ok=True)
+
     # Copy the template at --template and save to --output.
     # Then fill the copied template with the generated code.
     shutil.copy(args.template, args.output)
+
     program.fill_template(
         args.output,
         memory=args.memory,
