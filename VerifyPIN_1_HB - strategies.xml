@@ -18,14 +18,18 @@ const int32_t MAX_FLIPS = 1;
 int remaining_flips = MAX_FLIPS;
 
 /* To keep track of the number of executed instructions */
+bool waiting = false;
 int32_t executed_instructions = 0;
 
-/* VM Communication */
+/* VM Synchronisation */
 broadcast chan started;
 broadcast chan fetched;
 broadcast chan executed;
 broadcast chan failed;
 broadcast chan finished;
+
+/* Attacker Synchronisation */
+broadcast chan attack;
 
 // Data filled in but auto-generator:
 typedef struct {
@@ -241,7 +245,7 @@ void execute() {
         // Implementation: mem[reg[op2] + op3] = reg[op1][7:0]
         // Example: "a4,%lo(g_ptc)(a5)" op1=a4 op2=a5 op3=symbol_low(g_ptc)
         // Example: "{ SB_CODE, a5, s0, -25 }"
-        w_mem_i8(registers[instruction.op2] + instruction.op3, registers[instruction.op1] &amp; 255); // HERE!
+        w_mem_i8(registers[instruction.op2] + instruction.op3, registers[instruction.op1] &amp; 255);
     } else if (instruction.code == J_CODE) {
         // Note: This is a pseudo-instruction.
         // Implementation: pc = lab[op1]
@@ -387,32 +391,147 @@ bool valid_instruction() {
     return true;
 }
 
+const int32_t REGISTER_READ_TIME = 1;
+const int32_t REGISTER_WRITE_TIME = 1;
+const int32_t MEMORY_READ_TIME = 2;
+const int32_t MEMORY_WRITE_TIME = 2;
 
+int execution_time(int32_t code) {
+    if (code == ADDI_CODE) {
+        // Implementation: reg[op1] = reg[op2] + op3
+        return 1 * REGISTER_WRITE_TIME + 1 * REGISTER_READ_TIME;
+    } else if (code == SW_CODE) {
+        // Implementation: mem[reg[op2] + op3] = reg[op1]
+        return 1 * MEMORY_WRITE_TIME + 2 * REGISTER_READ_TIME;
+    } else if (code == LW_CODE) {
+        // Implementation: reg[op1] = mem[reg[op2] + op3]
+        return 1 * REGISTER_WRITE_TIME + 1 * REGISTER_READ_TIME + 1 * MEMORY_READ_TIME;
+    } else if (code == LUI_CODE) {
+        // Implementation: reg[op1] = op2
+        return 1 * REGISTER_WRITE_TIME;
+    } else if (code == SB_CODE) {
+        // Implementation: mem[reg[op2] + op3] = reg[op1][7:0]
+        return 1 * REGISTER_WRITE_TIME + 2 * REGISTER_READ_TIME;
+    } else if (code == J_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: pc = lab[op1]
+        return 1 * REGISTER_WRITE_TIME;
+    } else if (code == LI_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: reg[op1] = op2
+        // ADDI: reg[op1] = reg[zero] + op3
+        return 1 * REGISTER_WRITE_TIME + 1 * REGISTER_READ_TIME;
+    } else if (code == LB_CODE) {
+        // Implementation: reg[op1] = mem[reg[op2] + op3]
+        return 1 * REGISTER_WRITE_TIME + 1 * REGISTER_READ_TIME + 1 * MEMORY_READ_TIME;
+    } else if (code == BLE_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: if reg[op1] &lt;= reg[op2] then pc = lab[op3]
+        return 2 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == BEQ_CODE) {
+        // Implementation: if reg[op1] = reg[op2] then pc = lab[op3]
+        return 2 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == NOP_CODE) {
+        // Implementation: zzzZZZ
+        return 1;
+    } else if (code == ANDI_CODE) {
+        // Implementation: reg[op1] = reg[op2] &amp; op3
+        return 1 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == SLLI_CODE) {
+        // Implementation: reg[op1] = reg[op2] &lt;&lt; op3
+        return 1 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == SRAI_CODE) {
+        // Implementation: reg[op1] = reg[op2] &gt;&gt; op3
+        return 1 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == ADD_CODE) {
+        // Implementation: reg[op1] = reg[op2] + reg[op3]
+        return 2 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == LBU_CODE) {
+        // Implementation: reg[op1] = mem[reg[op2] + op3][7:0]
+        return 1 * REGISTER_WRITE_TIME + 1 * REGISTER_READ_TIME + 1 * MEMORY_READ_TIME;
+    } else if (code == BNE_CODE) {
+        // Implementation: if reg[op1] != reg[op2] then pc = lab[op3]
+        return 2 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == MV_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: reg[op1] = reg[op2]
+        // ADDI: reg[op1] = reg[op2] + 0
+        return 1 * REGISTER_WRITE_TIME + 1 * REGISTER_READ_TIME;
+    } else if (code == JR_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: pc = reg[op1]
+        return 1 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == SEQZ_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: if reg[op2] == 0 then reg[op1] = 1 else reg[op1] = 0
+        return 1 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == BLT_CODE) {
+        // Implementation: if reg[op1] &lt; reg[op2] then pc = lab[op3]
+        return 3 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    }
+
+    return -1;
+}
 
 
 </declaration>
 	<template>
-		<name>RegisterCorruption</name>
-		<declaration>register_t target;</declaration>
-		<location id="id0" x="-153" y="-34">
+		<name>Attacker</name>
+		<parameter>int32_t rest</parameter>
+		<declaration>clock cooldown;</declaration>
+		<location id="id0" x="-757" y="-493">
 		</location>
-		<location id="id1" x="102" y="-34">
-			<name x="110" y="-25">Flip</name>
-			<committed/>
+		<location id="id1" x="-646" y="-493">
+			<name x="-663" y="-527">READY</name>
+		</location>
+		<location id="id2" x="-450" y="-493">
+			<name x="-460" y="-527">COOLDOWN</name>
+			<label kind="invariant" x="-433" y="-484">cooldown &lt;= rest</label>
 		</location>
 		<init ref="id0"/>
-		<transition id="id2">
+		<transition id="id3">
 			<source ref="id1"/>
-			<target ref="id0"/>
+			<target ref="id2"/>
+			<label kind="synchronisation" x="-603" y="-552">attack?</label>
+			<label kind="assignment" x="-603" y="-535">cooldown = 0,
+waiting = true</label>
+		</transition>
+		<transition id="id4">
+			<source ref="id2"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-620" y="-433">cooldown &gt;= rest</label>
+			<label kind="assignment" x="-603" y="-416">waiting = false</label>
+			<nail x="-450" y="-433"/>
+			<nail x="-646" y="-433"/>
+		</transition>
+		<transition id="id5">
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="synchronisation" x="-740" y="-519">started?</label>
+		</transition>
+	</template>
+	<template>
+		<name>RegisterCorruption</name>
+		<declaration>register_t target;</declaration>
+		<location id="id6" x="-153" y="-34">
+		</location>
+		<location id="id7" x="102" y="-34">
+			<name x="110" y="-25">FLIP</name>
+			<committed/>
+		</location>
+		<init ref="id6"/>
+		<transition id="id8">
+			<source ref="id7"/>
+			<target ref="id6"/>
 			<label kind="select" x="-136" y="42">bit: int[0, 7]</label>
 			<label kind="assignment" x="-136" y="59">registers[target] ^= 1 &lt;&lt; bit,
 remaining_flips--</label>
 			<nail x="102" y="34"/>
 			<nail x="-153" y="34"/>
 		</transition>
-		<transition id="id3">
-			<source ref="id0"/>
-			<target ref="id1"/>
+		<transition id="id9">
+			<source ref="id6"/>
+			<target ref="id7"/>
 			<label kind="select" x="-101" y="-93">register: register_t</label>
 			<label kind="guard" x="-101" y="-76">remaining_flips &gt; 0</label>
 			<label kind="assignment" x="-102" y="-59">target = register</label>
@@ -421,76 +540,84 @@ remaining_flips--</label>
 	<template>
 		<name>InstructionFlip</name>
 		<declaration>int32_t target;</declaration>
-		<location id="id4" x="-1318" y="-374">
+		<location id="id10" x="-1353" y="-949">
 		</location>
-		<location id="id5" x="-969" y="-374">
+		<location id="id11" x="-1004" y="-949">
 			<committed/>
 		</location>
-		<location id="id6" x="-638" y="-374">
+		<location id="id12" x="-1251" y="-949">
+		</location>
+		<location id="id13" x="-1249" y="-884">
+			<name x="-1300" y="-876">FLIP</name>
 			<committed/>
 		</location>
-		<location id="id7" x="-1216" y="-374">
-		</location>
-		<init ref="id4"/>
-		<transition id="id8">
-			<source ref="id5"/>
-			<target ref="id7"/>
-			<label kind="guard" x="-1241" y="-459">target &lt; 0 || target &gt;= PROGRAM_LENGTH</label>
-			<nail x="-969" y="-434"/>
-			<nail x="-1216" y="-434"/>
+		<init ref="id10"/>
+		<transition id="id14">
+			<source ref="id13"/>
+			<target ref="id12"/>
 		</transition>
-		<transition id="id9">
-			<source ref="id6"/>
-			<target ref="id7"/>
-			<nail x="-638" y="-331"/>
-			<nail x="-1216" y="-331"/>
+		<transition id="id15">
+			<source ref="id11"/>
+			<target ref="id13"/>
+			<label kind="guard" x="-1224" y="-884">target &gt; 0 &amp;&amp; target &lt; PROGRAM_LENGTH</label>
+			<label kind="assignment" x="-1224" y="-867">pc = target, remaining_flips--</label>
+			<nail x="-1003" y="-884"/>
 		</transition>
-		<transition id="id10">
-			<source ref="id7"/>
-			<target ref="id5"/>
-			<label kind="select" x="-1156" y="-416">bit: int[0, 7]</label>
-			<label kind="assignment" x="-1190" y="-399">target = pc ^ (1 &lt;&lt; bit)</label>
+		<transition id="id16">
+			<source ref="id11"/>
+			<target ref="id12"/>
+			<label kind="guard" x="-1276" y="-1034">target &lt; 0 || target &gt;= PROGRAM_LENGTH</label>
+			<nail x="-1004" y="-1009"/>
+			<nail x="-1251" y="-1009"/>
 		</transition>
-		<transition id="id11">
-			<source ref="id4"/>
-			<target ref="id7"/>
-			<label kind="synchronisation" x="-1301" y="-399">started?</label>
+		<transition id="id17">
+			<source ref="id12"/>
+			<target ref="id11"/>
+			<label kind="select" x="-1191" y="-991">bit: int[0, 7]</label>
+			<label kind="assignment" x="-1225" y="-974">target = pc ^ (1 &lt;&lt; bit)</label>
 		</transition>
-		<transition id="id12">
-			<source ref="id5"/>
-			<target ref="id6"/>
-			<label kind="guard" x="-960" y="-416">target &gt; 0 &amp;&amp; target &lt; PROGRAM_LENGTH</label>
-			<label kind="assignment" x="-935" y="-399">pc = target, remaining_flips--</label>
+		<transition id="id18">
+			<source ref="id10"/>
+			<target ref="id12"/>
+			<label kind="synchronisation" x="-1336" y="-974">started?</label>
 		</transition>
 	</template>
 	<template>
 		<name>InstructionSkip</name>
-		<location id="id13" x="-1488" y="-868">
+		<location id="id19" x="-1488" y="-868">
 			<committed/>
 		</location>
-		<location id="id14" x="-1148" y="-867">
+		<location id="id20" x="-1148" y="-867">
 		</location>
-		<location id="id15" x="-1607" y="-868">
+		<location id="id21" x="-1607" y="-868">
 		</location>
-		<init ref="id15"/>
-		<transition id="id16">
-			<source ref="id15"/>
-			<target ref="id13"/>
+		<location id="id22" x="-909" y="-867">
+			<name x="-892" y="-858">SKIP</name>
+			<committed/>
+		</location>
+		<init ref="id21"/>
+		<transition id="id23">
+			<source ref="id22"/>
+			<target ref="id20"/>
+			<nail x="-909" y="-816"/>
+			<nail x="-1147" y="-816"/>
+		</transition>
+		<transition id="id24">
+			<source ref="id20"/>
+			<target ref="id22"/>
+			<label kind="guard" x="-1130" y="-935">remaining_flips &gt; 0 &amp;&amp;
+pc &lt; PROGRAM_LENGTH - 1</label>
+			<label kind="synchronisation" x="-1130" y="-892">executed?</label>
+			<label kind="assignment" x="-969" y="-892">pc++</label>
+		</transition>
+		<transition id="id25">
+			<source ref="id21"/>
+			<target ref="id19"/>
 			<label kind="synchronisation" x="-1581" y="-893">started?</label>
 		</transition>
-		<transition id="id17">
-			<source ref="id14"/>
-			<target ref="id14"/>
-			<label kind="guard" x="-1241" y="-808">remaining_flips &gt; 0 &amp;&amp;
-pc &lt; PROGRAM_LENGTH - 1</label>
-			<label kind="synchronisation" x="-1241" y="-766">executed?</label>
-			<label kind="assignment" x="-1088" y="-766">pc++</label>
-			<nail x="-1250" y="-808"/>
-			<nail x="-1063" y="-808"/>
-		</transition>
-		<transition id="id18">
-			<source ref="id13"/>
-			<target ref="id14"/>
+		<transition id="id26">
+			<source ref="id19"/>
+			<target ref="id20"/>
 			<label kind="select" x="-1462" y="-952">initial_pc: int[0, 1]</label>
 			<label kind="assignment" x="-1462" y="-935">pc = initial_pc,
 remaining_flips = initial_pc &gt; 0 ?
@@ -500,102 +627,105 @@ remaining_flips = initial_pc &gt; 0 ?
 	<template>
 		<name>MemoryCorruption</name>
 		<declaration>address_t target;</declaration>
-		<location id="id19" x="-510" y="-374">
+		<location id="id27" x="-493" y="-536">
+			<name x="-484" y="-527">FLIP</name>
 			<committed/>
 		</location>
-		<location id="id20" x="-756" y="-374">
+		<location id="id28" x="-739" y="-536">
 		</location>
-		<location id="id21" x="-875" y="-374">
+		<location id="id29" x="-858" y="-536">
 		</location>
-		<init ref="id21"/>
-		<transition id="id22">
-			<source ref="id19"/>
-			<target ref="id20"/>
-			<label kind="select" x="-739" y="-348">bit: int[0, 7]</label>
-			<label kind="assignment" x="-740" y="-331">memory[target] ^= 1 &lt;&lt; bit,
+		<init ref="id29"/>
+		<transition id="id30">
+			<source ref="id27"/>
+			<target ref="id28"/>
+			<label kind="select" x="-722" y="-510">bit: int[0, 7]</label>
+			<label kind="assignment" x="-723" y="-493">memory[target] ^= 1 &lt;&lt; bit,
 remaining_flips--</label>
-			<nail x="-510" y="-289"/>
-			<nail x="-756" y="-289"/>
+			<nail x="-493" y="-451"/>
+			<nail x="-739" y="-451"/>
 		</transition>
-		<transition id="id23">
-			<source ref="id20"/>
-			<target ref="id19"/>
-			<label kind="select" x="-739" y="-433">address: address_t</label>
-			<label kind="guard" x="-739" y="-416">remaining_flips &gt; 0</label>
-			<label kind="assignment" x="-740" y="-399">target = address</label>
+		<transition id="id31">
+			<source ref="id28"/>
+			<target ref="id27"/>
+			<label kind="select" x="-722" y="-595">address: address_t</label>
+			<label kind="guard" x="-722" y="-578">remaining_flips &gt; 0</label>
+			<label kind="assignment" x="-723" y="-561">target = address</label>
 		</transition>
-		<transition id="id24">
-			<source ref="id21"/>
-			<target ref="id20"/>
-			<label kind="synchronisation" x="-849" y="-399">started?</label>
+		<transition id="id32">
+			<source ref="id29"/>
+			<target ref="id28"/>
+			<label kind="synchronisation" x="-832" y="-561">started?</label>
 		</transition>
 	</template>
 	<template>
 		<name>StackCorruption</name>
 		<declaration>address_t target;</declaration>
-		<location id="id25" x="-705" y="-833">
+		<location id="id33" x="-705" y="-833">
+			<name x="-697" y="-824">FLIP</name>
 			<committed/>
 		</location>
-		<location id="id26" x="-960" y="-833">
+		<location id="id34" x="-960" y="-833">
 		</location>
-		<location id="id27" x="-1079" y="-833">
+		<location id="id35" x="-1079" y="-833">
 		</location>
-		<init ref="id27"/>
-		<transition id="id28">
-			<source ref="id25"/>
-			<target ref="id26"/>
+		<init ref="id35"/>
+		<transition id="id36">
+			<source ref="id33"/>
+			<target ref="id34"/>
 			<label kind="select" x="-943" y="-807">bit: int[0, 7]</label>
 			<label kind="assignment" x="-944" y="-790">memory[target] ^= 1 &lt;&lt; bit,
 remaining_flips--</label>
 			<nail x="-705" y="-748"/>
 			<nail x="-960" y="-748"/>
 		</transition>
-		<transition id="id29">
-			<source ref="id26"/>
-			<target ref="id25"/>
+		<transition id="id37">
+			<source ref="id34"/>
+			<target ref="id33"/>
 			<label kind="select" x="-943" y="-918">address: address_t</label>
 			<label kind="guard" x="-943" y="-901">address &gt;= registers[sp] &amp;&amp;
 remaining_flips &gt; 0</label>
 			<label kind="assignment" x="-944" y="-858">target = address</label>
 		</transition>
-		<transition id="id30">
-			<source ref="id27"/>
-			<target ref="id26"/>
+		<transition id="id38">
+			<source ref="id35"/>
+			<target ref="id34"/>
 			<label kind="synchronisation" x="-1053" y="-858">started?</label>
 		</transition>
 	</template>
 	<template>
 		<name>GlobalsCorruption</name>
 		<declaration>address_t target;</declaration>
-		<location id="id31" x="-1087" y="-748">
+		<location id="id39" x="-1121" y="-825">
 		</location>
-		<location id="id32" x="-713" y="-748">
+		<location id="id40" x="-747" y="-825">
+			<name x="-739" y="-816">FLIP</name>
 			<committed/>
 		</location>
-		<location id="id33" x="-968" y="-748">
+		<location id="id41" x="-1002" y="-825">
 		</location>
-		<init ref="id31"/>
-		<transition id="id34">
-			<source ref="id32"/>
-			<target ref="id33"/>
-			<label kind="select" x="-951" y="-722">bit: int[0, 7]</label>
-			<label kind="assignment" x="-952" y="-705">memory[target] ^= 1 &lt;&lt; bit,
+		<init ref="id39"/>
+		<transition id="id42">
+			<source ref="id40"/>
+			<target ref="id41"/>
+			<label kind="select" x="-985" y="-799">bit: int[0, 7]</label>
+			<label kind="assignment" x="-986" y="-782">memory[target] ^= 1 &lt;&lt; bit,
 remaining_flips--</label>
-			<nail x="-713" y="-663"/>
-			<nail x="-968" y="-663"/>
+			<nail x="-747" y="-740"/>
+			<nail x="-1002" y="-740"/>
 		</transition>
-		<transition id="id35">
-			<source ref="id33"/>
-			<target ref="id32"/>
-			<label kind="select" x="-951" y="-833">address: address_t</label>
-			<label kind="guard" x="-951" y="-816">address &lt; GLOBAL_SYMBOLS_SIZE &amp;&amp;
+		<transition id="id43">
+			<source ref="id41"/>
+			<target ref="id40"/>
+			<label kind="select" x="-985" y="-910">address: address_t</label>
+			<label kind="guard" x="-985" y="-893">address &lt; GLOBAL_SYMBOLS_SIZE &amp;&amp;
 remaining_flips &gt; 0</label>
-			<label kind="assignment" x="-952" y="-773">target = address</label>
+			<label kind="assignment" x="-986" y="-850">target = address</label>
 		</transition>
-		<transition id="id36">
-			<source ref="id31"/>
-			<target ref="id33"/>
-			<label kind="synchronisation" x="-1061" y="-773">started?</label>
+		<transition id="id44">
+			<source ref="id39"/>
+			<target ref="id41"/>
+			<label kind="synchronisation" x="-1095" y="-850">started?</label>
 		</transition>
 	</template>
 	<template>
@@ -736,46 +866,46 @@ bool is_read(register_t register) {
     }
     return false;
 }</declaration>
-		<location id="id37" x="-1283" y="-586">
+		<location id="id45" x="-1266" y="-739">
 		</location>
-		<location id="id38" x="-1147" y="-586">
+		<location id="id46" x="-1130" y="-739">
 		</location>
-		<location id="id39" x="-901" y="-587">
-			<name x="-884" y="-579">Flip</name>
+		<location id="id47" x="-884" y="-740">
+			<name x="-867" y="-732">Flip</name>
 			<committed/>
 		</location>
-		<location id="id40" x="-901" y="-680">
+		<location id="id48" x="-884" y="-833">
 			<committed/>
 		</location>
-		<init ref="id37"/>
-		<transition id="id41">
-			<source ref="id40"/>
-			<target ref="id39"/>
+		<init ref="id45"/>
+		<transition id="id49">
+			<source ref="id48"/>
+			<target ref="id47"/>
 		</transition>
-		<transition id="id42">
-			<source ref="id40"/>
-			<target ref="id38"/>
+		<transition id="id50">
+			<source ref="id48"/>
+			<target ref="id46"/>
 		</transition>
-		<transition id="id43">
-			<source ref="id38"/>
-			<target ref="id40"/>
-			<label kind="guard" x="-1139" y="-722">remaining_flips &gt; 0 &amp;&amp;
+		<transition id="id51">
+			<source ref="id46"/>
+			<target ref="id48"/>
+			<label kind="guard" x="-1122" y="-875">remaining_flips &gt; 0 &amp;&amp;
 is_observable(instruction)</label>
-			<label kind="synchronisation" x="-1139" y="-739">executed?</label>
-			<nail x="-1147" y="-679"/>
+			<label kind="synchronisation" x="-1122" y="-892">executed?</label>
+			<nail x="-1130" y="-832"/>
 		</transition>
-		<transition id="id44">
-			<source ref="id39"/>
-			<target ref="id38"/>
-			<label kind="select" x="-1122" y="-578">register: register_t,
+		<transition id="id52">
+			<source ref="id47"/>
+			<target ref="id46"/>
+			<label kind="select" x="-1105" y="-731">register: register_t,
 bit: int[0, 7]</label>
-			<label kind="assignment" x="-1122" y="-535">registers[register] ^= 1 &lt;&lt; bit,
+			<label kind="assignment" x="-1105" y="-688">registers[register] ^= 1 &lt;&lt; bit,
 remaining_flips--</label>
 		</transition>
-		<transition id="id45">
-			<source ref="id37"/>
-			<target ref="id38"/>
-			<label kind="synchronisation" x="-1249" y="-603">started?</label>
+		<transition id="id53">
+			<source ref="id45"/>
+			<target ref="id46"/>
+			<label kind="synchronisation" x="-1232" y="-756">started?</label>
 		</transition>
 	</template>
 	<template>
@@ -912,80 +1042,79 @@ bool is_read(register_t register) {
     }
     return false;
 }</declaration>
-		<location id="id46" x="-1521" y="-484">
+		<location id="id54" x="-1521" y="-484">
 		</location>
-		<location id="id47" x="-1385" y="-484">
+		<location id="id55" x="-1385" y="-484">
 		</location>
-		<location id="id48" x="-1181" y="-407">
+		<location id="id56" x="-1181" y="-407">
 			<committed/>
 		</location>
-		<location id="id49" x="-985" y="-484">
+		<location id="id57" x="-985" y="-484">
 			<name x="-977" y="-476">Flip</name>
 			<committed/>
 		</location>
-		<location id="id50" x="-1181" y="-577">
+		<location id="id58" x="-1181" y="-577">
 			<committed/>
 		</location>
-		<init ref="id46"/>
-		<transition id="id51">
-			<source ref="id48"/>
-			<target ref="id49"/>
-			<label kind="select" x="-1163" y="-403">register: register_t</label>
-			<label kind="guard" x="-1163" y="-386">is_read(register)</label>
-			<label kind="assignment" x="-1164" y="-365">target = register</label>
+		<init ref="id54"/>
+		<transition id="id59">
+			<source ref="id56"/>
+			<target ref="id57"/>
+			<label kind="select" x="-1164" y="-382">register: register_t</label>
+			<label kind="guard" x="-1164" y="-365">is_read(register) &amp;&amp; !waiting</label>
+			<label kind="synchronisation" x="-1164" y="-403">attack!</label>
+			<label kind="assignment" x="-1165" y="-344">target = register</label>
 			<nail x="-985" y="-407"/>
 		</transition>
-		<transition id="id52">
-			<source ref="id50"/>
-			<target ref="id49"/>
+		<transition id="id60">
+			<source ref="id58"/>
+			<target ref="id57"/>
 			<label kind="select" x="-1156" y="-637">register: register_t</label>
-			<label kind="guard" x="-1156" y="-620">is_write(register)</label>
+			<label kind="guard" x="-1156" y="-620">is_write(register) &amp;&amp; !waiting</label>
+			<label kind="synchronisation" x="-1156" y="-654">attack!</label>
 			<label kind="assignment" x="-1156" y="-603">target = register</label>
 			<nail x="-985" y="-577"/>
 		</transition>
-		<transition id="id53">
-			<source ref="id50"/>
-			<target ref="id47"/>
+		<transition id="id61">
+			<source ref="id58"/>
+			<target ref="id55"/>
 		</transition>
-		<transition id="id54">
-			<source ref="id47"/>
-			<target ref="id50"/>
+		<transition id="id62">
+			<source ref="id55"/>
+			<target ref="id58"/>
 			<label kind="guard" x="-1351" y="-620">remaining_flips &gt; 0</label>
 			<label kind="synchronisation" x="-1436" y="-620">executed?</label>
 			<label kind="assignment" x="-1428" y="-603">write_registers(instruction)</label>
 			<nail x="-1385" y="-577"/>
 		</transition>
-		<transition id="id55">
-			<source ref="id49"/>
-			<target ref="id47"/>
-			<label kind="select" x="-1189" y="-543">bit: int[0, 7]</label>
-			<label kind="assignment" x="-1257" y="-526">registers[target] ^= 1 &lt;&lt; bit,
+		<transition id="id63">
+			<source ref="id57"/>
+			<target ref="id55"/>
+			<label kind="select" x="-1207" y="-544">bit: int[0, 7]</label>
+			<label kind="assignment" x="-1275" y="-527">registers[target] ^= 1 &lt;&lt; bit,
 remaining_flips--</label>
 		</transition>
-		<transition id="id56">
-			<source ref="id48"/>
-			<target ref="id47"/>
+		<transition id="id64">
+			<source ref="id56"/>
+			<target ref="id55"/>
 		</transition>
-		<transition id="id57">
-			<source ref="id47"/>
-			<target ref="id48"/>
+		<transition id="id65">
+			<source ref="id55"/>
+			<target ref="id56"/>
 			<label kind="guard" x="-1368" y="-399">remaining_flips &gt; 0</label>
 			<label kind="synchronisation" x="-1444" y="-399">fetched?</label>
 			<label kind="assignment" x="-1444" y="-382">read_registers(instruction)</label>
 			<nail x="-1385" y="-407"/>
 		</transition>
-		<transition id="id58">
-			<source ref="id46"/>
-			<target ref="id47"/>
+		<transition id="id66">
+			<source ref="id54"/>
+			<target ref="id55"/>
 			<label kind="synchronisation" x="-1487" y="-501">started?</label>
 		</transition>
 	</template>
 	<template>
 		<name x="5" y="5">VM</name>
 		<declaration>// Automatically generated.
-
-const int exec_time = 10;
-const int eps = 1;
 
 clock runtime; // Used to control the time an instruction takes to execute.
 
@@ -1157,87 +1286,90 @@ memory[10] = 1; // 3'it byte of g_cardPin
     registers[sp] = MEMORY_LENGTH - 1;
     pc = 0;
 }</declaration>
-		<location id="id59" x="-986" y="-968">
-			<name x="-969" y="-977">FETCHING</name>
+		<location id="id67" x="-1258" y="-1139">
+			<name x="-1241" y="-1148">FETCHING</name>
+			<urgent/>
+		</location>
+		<location id="id68" x="-1037" y="-1139">
+			<name x="-1130" y="-1148">EXECUTING</name>
+			<label kind="invariant" x="-1020" y="-1139">runtime &lt;=
+execution_time(instruction.code)</label>
+		</location>
+		<location id="id69" x="-1700" y="-1139">
 			<committed/>
 		</location>
-		<location id="id60" x="-765" y="-968">
-			<name x="-858" y="-977">EXECUTING</name>
-			<label kind="invariant" x="-756" y="-960">runtime &lt;= exec_time + eps</label>
+		<location id="id70" x="-1496" y="-1071">
+			<name x="-1513" y="-1055">DONE</name>
 		</location>
-		<location id="id61" x="-1428" y="-968">
+		<location id="id71" x="-781" y="-1206">
+			<name x="-790" y="-1189">ERR</name>
+		</location>
+		<location id="id72" x="-1810" y="-1140">
 			<committed/>
 		</location>
-		<location id="id62" x="-1224" y="-900">
-			<name x="-1241" y="-892">DONE</name>
-		</location>
-		<location id="id63" x="-510" y="-968">
-			<name x="-519" y="-951">ERR</name>
-		</location>
-		<location id="id64" x="-1547" y="-968">
-			<committed/>
-		</location>
-		<init ref="id64"/>
-		<transition id="id65" controllable="false">
-			<source ref="id64"/>
-			<target ref="id61"/>
-			<label kind="synchronisation" x="-1523" y="-994">started!</label>
-			<label kind="assignment" x="-1522" y="-1011">setup()</label>
+		<init ref="id72"/>
+		<transition id="id73" controllable="false">
+			<source ref="id72"/>
+			<target ref="id69"/>
+			<label kind="synchronisation" x="-1786" y="-1166">started!</label>
+			<label kind="assignment" x="-1785" y="-1183">setup()</label>
 		</transition>
-		<transition id="id66" controllable="false">
-			<source ref="id60"/>
-			<target ref="id63"/>
-			<label kind="guard" x="-706" y="-1011">!valid_instruction()</label>
-			<label kind="synchronisation" x="-706" y="-994">failed!</label>
+		<transition id="id74" controllable="false">
+			<source ref="id68"/>
+			<target ref="id71"/>
+			<label kind="guard" x="-977" y="-1249">!valid_instruction()</label>
+			<label kind="synchronisation" x="-977" y="-1232">failed!</label>
+			<nail x="-994" y="-1207"/>
 		</transition>
-		<transition id="id67" controllable="false">
-			<source ref="id59"/>
-			<target ref="id62"/>
-			<label kind="guard" x="-1190" y="-900">pc == PROGRAM_LENGTH</label>
-			<label kind="synchronisation" x="-1190" y="-883">finished!</label>
-			<nail x="-1011" y="-900"/>
+		<transition id="id75" controllable="false">
+			<source ref="id67"/>
+			<target ref="id70"/>
+			<label kind="guard" x="-1462" y="-1071">pc == PROGRAM_LENGTH</label>
+			<label kind="synchronisation" x="-1462" y="-1054">finished!</label>
+			<nail x="-1283" y="-1071"/>
 		</transition>
-		<transition id="id68">
-			<source ref="id61"/>
-			<target ref="id59"/>
-			<label kind="select" x="-1411" y="-1130">first:  int[0, 0],
+		<transition id="id76">
+			<source ref="id69"/>
+			<target ref="id67"/>
+			<label kind="select" x="-1683" y="-1301">first:  int[0, 0],
 second: int[0, 0],
 third:  int[0, 0],
 fourth: int[0, 0]</label>
-			<label kind="guard" x="-1411" y="-1053">memory[g_userPin + 0] != memory[g_cardPin + 0] &amp;&amp;
+			<label kind="guard" x="-1683" y="-1224">memory[g_userPin + 0] != memory[g_cardPin + 0] &amp;&amp;
 memory[g_userPin + 1] != memory[g_cardPin + 1] &amp;&amp;
 memory[g_userPin + 2] != memory[g_cardPin + 2] &amp;&amp;
 memory[g_userPin + 3] != memory[g_cardPin + 3]</label>
-			<label kind="assignment" x="-1258" y="-1130">memory[g_userPin + 0] = first,
+			<label kind="assignment" x="-1530" y="-1301">memory[g_userPin + 0] = first,
 memory[g_userPin + 1] = second,
 memory[g_userPin + 2] = third,
 memory[g_userPin + 3] = fourth</label>
 		</transition>
-		<transition id="id69" controllable="false">
-			<source ref="id60"/>
-			<target ref="id59"/>
-			<label kind="guard" x="-969" y="-926">valid_instruction() &amp;&amp;
-runtime &gt;= exec_time - eps</label>
-			<label kind="synchronisation" x="-969" y="-866">executed!</label>
-			<label kind="assignment" x="-969" y="-883">execute()</label>
-			<nail x="-765" y="-926"/>
-			<nail x="-986" y="-926"/>
+		<transition id="id77" controllable="false">
+			<source ref="id68"/>
+			<target ref="id67"/>
+			<label kind="guard" x="-1241" y="-1096">valid_instruction() &amp;&amp;
+runtime &gt;= execution_time(instruction.code)</label>
+			<label kind="synchronisation" x="-1241" y="-1037">executed!</label>
+			<label kind="assignment" x="-1241" y="-1054">execute()</label>
+			<nail x="-1037" y="-1097"/>
+			<nail x="-1258" y="-1097"/>
 		</transition>
-		<transition id="id70" controllable="false">
-			<source ref="id59"/>
-			<target ref="id60"/>
-			<label kind="guard" x="-977" y="-1071">pc &lt; PROGRAM_LENGTH</label>
-			<label kind="synchronisation" x="-977" y="-1037">fetched!</label>
-			<label kind="assignment" x="-977" y="-1054">fetch(), runtime = 0</label>
-			<nail x="-986" y="-1011"/>
-			<nail x="-765" y="-1011"/>
+		<transition id="id78" controllable="false">
+			<source ref="id67"/>
+			<target ref="id68"/>
+			<label kind="guard" x="-1249" y="-1242">pc &lt; PROGRAM_LENGTH</label>
+			<label kind="synchronisation" x="-1249" y="-1208">fetched!</label>
+			<label kind="assignment" x="-1249" y="-1225">fetch(), runtime = 0</label>
+			<nail x="-1258" y="-1182"/>
+			<nail x="-1037" y="-1182"/>
 		</transition>
 	</template>
 	<system>// Place template instantiations here.
 vm = VM();
-attacker = RegisterCorruption();
+attacker = Attacker(10);
+orc = OptimisedRegisterCorruption();
 // List one or more processes to be composed into a system.
-system vm, attacker;
+system vm, orc, attacker;
 </system>
 	<queries>
 		<option key="--diagnostic" value="0"/>
@@ -1248,7 +1380,21 @@ system vm, attacker;
 		<query>
 			<formula>A&lt;&gt; vm.DONE || vm.ERR</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:13:12 +0100">
+			<result outcome="success" type="quality" timestamp="2025-03-20 13:11:13 +0100">
+				<option key="--diagnostic" value="0"/>
+			</result>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.DONE</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2025-03-20 13:11:13 +0100">
+				<option key="--diagnostic" value="0"/>
+			</result>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.ERR</formula>
+			<comment/>
+			<result outcome="success" type="quality" timestamp="2025-03-20 13:11:13 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
@@ -1263,14 +1409,14 @@ system vm, attacker;
 		<query>
 			<formula>strategy Undetected = control: A[] mem_u8(g_countermeasure) == 0</formula>
 			<comment>Pure safety: "control: A[] not(lose)" &lt;=&gt; "control: A[] win"</comment>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:46:46 +0100">
+			<result outcome="success" type="quality" timestamp="2025-03-20 13:11:13 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170 under Undetected</formula>
 			<comment>Is it possible to be authenticated and not crash the VM whilst staying undetected?</comment>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:13:35 +0100">
+			<result outcome="success" type="quality" timestamp="2025-03-20 13:11:13 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
@@ -1285,14 +1431,14 @@ system vm, attacker;
 		<query>
 			<formula>strategy Access = control: A&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:13:47 +0100">
+			<result outcome="success" type="quality" timestamp="2025-03-20 13:11:13 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_ptc) &gt; 3 under Access</formula>
 			<comment>Is it possible to gain undetected access and increase ptc?</comment>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:13:50 +0100">
+			<result outcome="failure" type="quality" timestamp="2025-03-20 13:11:13 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
@@ -1307,28 +1453,28 @@ system vm, attacker;
 		<query>
 			<formula>strategy UndetectedAccess = control: A&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170 under Undetected</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:46:46 +0100">
+			<result outcome="success" type="quality" timestamp="2025-03-20 13:11:14 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_ptc) &gt; 3 under UndetectedAccess</formula>
 			<comment>Is it possible to not crash the VM and gain undetected access and increase ptc?</comment>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:14:04 +0100">
+			<result outcome="failure" type="quality" timestamp="2025-03-20 13:11:14 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; !vm.ERR under UndetectedAccess</formula>
 			<comment>Is it not possible to crash the VM under a strategy which guarantees that every execution finishes and provides undetected access?</comment>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:14:04 +0100">
+			<result outcome="success" type="quality" timestamp="2025-03-20 13:11:14 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; mem_u8(g_ptc) &gt; 3 under UndetectedAccess</formula>
 			<comment>Is it possible to increase ptc whilst gaining undetected access?</comment>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:14:06 +0100">
+			<result outcome="failure" type="quality" timestamp="2025-03-20 13:11:14 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
@@ -1347,35 +1493,35 @@ system vm, attacker;
 In my own words: "p has to holds atleast until p and q, or p must remain true forever" - In other words: "The attacker either stays undetected forever or gains undetected access at some point".
 
 Release ("q RELEASE p"): "p" has to be true until and including the point where "q" first becomes true; if "q" never becomes true, "p" must remain true forever.</comment>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:14:23 +0100">
+			<result outcome="success" type="quality" timestamp="2025-03-20 13:11:14 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:14:26 +0100">
+			<result outcome="success" type="quality" timestamp="2025-03-20 13:11:14 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; mem_u8(g_ptc) &gt; 3 under WeakUndectedAccess</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:14:34 +0100">
+			<result outcome="success" type="quality" timestamp="2025-03-20 13:11:14 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; vm.ERR under WeakUndectedAccess</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:14:35 +0100">
+			<result outcome="success" type="quality" timestamp="2025-03-20 13:11:14 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; vm.DONE under WeakUndectedAccess</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:14:35 +0100">
+			<result outcome="success" type="quality" timestamp="2025-03-20 13:11:14 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
@@ -1390,14 +1536,14 @@ Release ("q RELEASE p"): "p" has to be true until and including the point where 
 		<query>
 			<formula>strategy NoCrash = control: A[] !vm.ERR</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:14:52 +0100">
+			<result outcome="success" type="quality" timestamp="2025-03-20 13:11:14 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_authenticated) == 170 under NoCrash</formula>
 			<comment/>
-			<result outcome="success" type="quality" timestamp="2025-03-19 12:14:56 +0100">
+			<result outcome="success" type="quality" timestamp="2025-03-20 13:11:15 +0100">
 				<option key="--diagnostic" value="0"/>
 			</result>
 		</query>
