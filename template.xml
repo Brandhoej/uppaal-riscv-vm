@@ -344,7 +344,11 @@ void execute() {
 }
 
 bool valid_instruction() {
-    if (instruction.code == J_CODE || instruction.code == CALL_CODE) {
+    if (instruction.code == JR_CODE) {
+        // Implementation: pc = reg[op1]
+        int32_t new_pc = registers[instruction.op1];
+        return (new_pc &gt;= 0 &amp;&amp; new_pc &lt; PROGRAM_LENGTH);
+    } else if (instruction.code == J_CODE || instruction.code == CALL_CODE) {
         // Implementation: pc = lab[op1]
         return (instruction.op1 &gt;= 0 &amp;&amp; instruction.op1 &lt; PROGRAM_LENGTH);
     } else if (instruction.code == SB_CODE || instruction.code == LBU_CODE || instruction.code == LB_CODE) {
@@ -465,10 +469,7 @@ int execution_time(int32_t code) {
     }
 
     return -1;
-}
-
-
-</declaration>
+}</declaration>
 	<template>
 		<name>Attacker</name>
 		<parameter>int32_t rest</parameter>

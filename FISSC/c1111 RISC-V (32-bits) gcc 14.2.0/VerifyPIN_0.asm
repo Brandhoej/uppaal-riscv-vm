@@ -5,7 +5,7 @@ g_authenticated:
 g_userPin:
         .zero   4
 g_cardPin:
-        .ascii  "\001\002\003\004"
+        .ascii  "\001\001\001\001"
 byteArrayCompare:
         addi    sp,sp,-48
         sw      ra,44(sp)
@@ -91,4 +91,4 @@ verifyPIN:
         lw      ra,12(sp)
         lw      s0,8(sp)
         addi    sp,sp,16
-        jr      ra
+;        jr      ra
