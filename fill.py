@@ -235,9 +235,8 @@ class RISCVProgram:
         content = content.replace('/* GENERATED: MAX_FLIPS */', self.generated_max_flips(max_flips))
         content = content.replace('/* GENERATED: INITIAL_PC */', self.generated_initial_pc(initial_pc))
         content = content.replace('/* GENERATED: COOLDOWN */', self.generated_cooldown(initial_pc))
-
-
-
+        content = content.replace('/* GENERATED: FAULT_MODELS */', self.generated_fault_models(fault_models))
+        
         with open(template, 'w') as file:
             file.write(content)
     
