@@ -50,24 +50,14 @@ class RISCVProgram:
     assertions = [(0, 1, 'registers[sp] == 123')]
     """
 
-    __initial_pc: str
-    __memory: int
-    __max_flips: int
-
     def __init__(
             self,
             symbols: List[Tuple[str, List[str]]],
             programs: List[Tuple[str, List[Tuple[str, str, str, str]]]],
-            initial_pc: str = '0',
-            memory: int = 256,
-            max_flips: int = 1,
             assertions: List[Tuple[int, int, str]] = []
         ):
         self.__symbols = symbols
         self.__programs = programs
-        self.__initial_pc = initial_pc
-        self.__memory = memory
-        self.__max_flips = max_flips
         self.__assertions = assertions
 
     @property
@@ -108,10 +98,10 @@ class RISCVProgram:
     def assertions(self) -> List[Tuple[int, int, str]]:
         return self.__assertions
 
-    def generated_max_flips(self) -> str:
+    def generated_max_flips(self, max_flips: int) -> str:
         # /* GENERATED: MAX_FLIPS */
         # Example: "const int32_t MAX_FLIPS = 1;"
-        return f'const int32_t MAX_FLIPS = {self.__max_flips};'
+        return f'const int32_t MAX_FLIPS = {max_flips};'
 
     def generated_program_length(self) -> str:
         # /* GENERATED: PROGRAM_LENGTH */
@@ -143,15 +133,15 @@ class RISCVProgram:
             offset += RISCVProgram.symbol_size(lines)
         return '\n'.join(globals)
     
-    def generated_memory_length(self) -> str:
+    def generated_memory_length(self, memory: int) -> str:
         # /* GENERATED: MEMORY_LENGTH */
         # Example: "const int32_t MEMORY_LENGTH = 64;"
-        return f'const int32_t MEMORY_LENGTH = {self.__memory};'
+        return f'const int32_t MEMORY_LENGTH = {memory};'
 
-    def generated_initial_pc(self) -> str:
+    def generated_initial_pc(self, initial_pc: str) -> str:
         # /* GENERATED: INITIAL_PC */
         # Example: "pc = verifyPIN;"
-        return f'pc = {self.__initial_pc};'
+        return f'pc = {initial_pc};'
 
     def generated_memory_initialisation(self) -> str:
         # g_ptc:
@@ -205,7 +195,14 @@ class RISCVProgram:
     def generated_sp_pc_init(self) -> str:
         return 'registers[sp] = MEMORY_LENGTH - 1;\npc = 0;'
 
-    def fill_template(self, template: str):
+    def fill_template(
+            self,
+            template: str,
+            initial_pc: str = '0',
+            memory: int = 256,
+            max_flips: int = 0,
+            fault_models: List[str] = [],
+        ):
         content = ''
         with open(template) as file:
             content = file.read()
@@ -216,9 +213,9 @@ class RISCVProgram:
         content = content.replace('/* GENERATED: GLOBAL_SYMBOLS_SIZE */', self.generated_global_symbols_size())
         content = content.replace('/* GENERATED: PROGRAM */', self.generated_program())
         content = content.replace('/* GENERATED: MEMORY_INITIALISATION */', self.generated_memory_initialisation())
-        content = content.replace('/* GENERATED: MEMORY_LENGTH */', self.generated_memory_length())
-        content = content.replace('/* GENERATED: MAX_FLIPS */', self.generated_max_flips())
-        content = content.replace('/* GENERATED: INITIAL_PC */', self.generated_initial_pc())
+        content = content.replace('/* GENERATED: MEMORY_LENGTH */', self.generated_memory_length(memory))
+        content = content.replace('/* GENERATED: MAX_FLIPS */', self.generated_max_flips(max_flips))
+        content = content.replace('/* GENERATED: INITIAL_PC */', self.generated_initial_pc(initial_pc))
 
         with open(template, 'w') as file:
             file.write(content)
@@ -271,7 +268,7 @@ class RISCVProgram:
         return sum(RISCVProgram.data_size(line) for line in lines)
 
     @staticmethod
-    def parse(path: str, memory: int, max_flips: int, initial_pc: str = '0') -> "RISCVProgram":
+    def parse(path: str) -> "RISCVProgram":
         # First we parse the file into segments which are seperated by an identifier such as "g_ptc"
         # or "verifyPIN:" - the pattern is that they all end with ":". The proceeding line as then
         # bundled into the segment which we then process later.
@@ -299,7 +296,7 @@ class RISCVProgram:
             program = RISCVProgram.parse_program(segments[index])
             programs.append(program)
 
-        return RISCVProgram(symbols, programs, initial_pc, memory, max_flips, assertions)
+        return RISCVProgram(symbols, programs, assertions)
 
     @staticmethod
     def parse_program(segment: Tuple[str, List[str]]) -> Tuple[str, List[Tuple[str, str, str, str]]]:
@@ -493,6 +490,10 @@ def main():
         '-v', '--verbose', action='store_true',
         help='Enable verbose mode: print detailed step-by-step output to the terminal.'
     )
+    parser.add_argument(
+        '-cd', '--cooldown', type=int, default=0,
+        help='The cooldown performed by the attacker'
+    )
 
     fault_model_descriptions = {
         "RC": "RegisterCorruption: Bit-flips in arbritary CPU registers.",
@@ -519,7 +520,6 @@ def main():
     global __verbose
     __verbose = args.verbose
 
-    # Checks if we have a fault model but no flips can be done.
     if args.flips > 0 and (args.fault_models is None or len(args.fault_models) == 0):
         err_print(f"{args.flips} flip(s) requested, but no fault models were specified. Please provide at least one fault model.")
         return
@@ -528,12 +528,22 @@ def main():
         err_print(f"Fault model(s) specified ({args.fault_models}), but the number of flips is set to 0. Please set a positive number for flips.")
         return
 
-    program = RISCVProgram.parse(args.file, args.memory, args.flips, args.pc)
+    if args.cooldown > 0 and args.flips == 0:
+        err_print(f'Cooldown for the attacker specified ({args.cooldown}), but the number of flips is set to 0. Please set a positive number for flips.')
+        return
+
+    program = RISCVProgram.parse(args.file)
 
     # Copy the template at --template and save to --output.
     # Then fill the copied template with the generated code.
     shutil.copy(args.template, args.output)
-    program.fill_template(args.output)
+    program.fill_template(
+        args.output,
+        memory=args.memory,
+        max_flips=args.flips,
+        initial_pc=args.pc,
+        fault_models=args.fault_models,
+    )
 
 if __name__ == "__main__":
     main()

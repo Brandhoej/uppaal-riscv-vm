@@ -167,7 +167,7 @@ class TestRISCVProgramParse(unittest.TestCase):
 
     def test_parse_verify_pin_0(self):
         path = './FISSC/c1234 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm'
-        program = RISCVProgram.parse(path, 0, 0)
+        program = RISCVProgram.parse(path)
     
         self.assertEqual(len(program.symbols), 4)
 
@@ -218,7 +218,7 @@ class TestRISCVProgramParse(unittest.TestCase):
 
     def test_generated_verify_pin_2(self):
         path = './FISSC/c1234 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_2_HB+FTL.asm'
-        program = RISCVProgram.parse(path, 0, 0)
+        program = RISCVProgram.parse(path)
 
         program_length = 'const int32_t PROGRAM_LENGTH = 83;'
         self.assertEqual(program.generated_program_length(), program_length)
@@ -444,7 +444,7 @@ class TestRISCVProgramParse(unittest.TestCase):
         ]
 
         for (path, symbols, length) in files:
-            program = RISCVProgram.parse(path, 0, 0)
+            program = RISCVProgram.parse(path)
             self.assertEqual(len(program.symbols), symbols)
             self.assertEqual(program.length, length)
     
