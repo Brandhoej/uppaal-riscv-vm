@@ -4,6 +4,13 @@ import re
 
 from typing import Dict, List, Tuple, Optional
 
+__verbose: bool = False
+
+def v_print(text: str):
+    global __verbose
+    if __verbose:
+        print(text)
+
 class RISCVProgram:
     __symbols: List[Tuple[str, List[str]]]
     """
@@ -40,6 +47,7 @@ class RISCVProgram:
     assertions = [(0, 1, 'registers[sp] == 123')]
     """
 
+    __initial_pc: str
     __memory: int
     __max_flips: int
 
@@ -47,12 +55,14 @@ class RISCVProgram:
             self,
             symbols: List[Tuple[str, List[str]]],
             programs: List[Tuple[str, List[Tuple[str, str, str, str]]]],
+            initial_pc: str = '0',
             memory: int = 256,
             max_flips: int = 1,
             assertions: List[Tuple[int, int, str]] = []
         ):
         self.__symbols = symbols
         self.__programs = programs
+        self.__initial_pc = initial_pc
         self.__memory = memory
         self.__max_flips = max_flips
         self.__assertions = assertions
@@ -135,6 +145,11 @@ class RISCVProgram:
         # Example: "const int32_t MEMORY_LENGTH = 64;"
         return f'const int32_t MEMORY_LENGTH = {self.__memory};'
 
+    def generated_initial_pc(self) -> str:
+        # /* GENERATED: INITIAL_PC */
+        # Example: "pc = verifyPIN;"
+        return f'pc = {self.__initial_pc};'
+
     def generated_memory_initialisation(self) -> str:
         # g_ptc:
         #         .word   32
@@ -192,14 +207,15 @@ class RISCVProgram:
         with open(template) as file:
             content = file.read()
 
-        content = content.replace('/* GENERATED: LABELS */', self.generated_labels() + '\n')
-        content = content.replace('/* GENERATED: GLOBAL_SYMBOLS */', self.generated_global_symbols() + '\n')
-        content = content.replace('/* GENERATED: PROGRAM_LENGTH */', self.generated_program_length() + '\n')
-        content = content.replace('/* GENERATED: GLOBAL_SYMBOLS_SIZE */', self.generated_global_symbols_size() + '\n')
-        content = content.replace('/* GENERATED: PROGRAM */', self.generated_program() + '\n')
-        content = content.replace('/* GENERATED: MEMORY_INITIALISATION */', self.generated_memory_initialisation() + '\n')
-        content = content.replace('/* GENERATED: MEMORY_LENGTH */', self.generated_memory_length() + '\n')
-        content = content.replace('/* GENERATED: MAX_FLIPS */', self.generated_max_flips() + '\n')
+        content = content.replace('/* GENERATED: LABELS */', self.generated_labels())
+        content = content.replace('/* GENERATED: GLOBAL_SYMBOLS */', self.generated_global_symbols())
+        content = content.replace('/* GENERATED: PROGRAM_LENGTH */', self.generated_program_length())
+        content = content.replace('/* GENERATED: GLOBAL_SYMBOLS_SIZE */', self.generated_global_symbols_size())
+        content = content.replace('/* GENERATED: PROGRAM */', self.generated_program())
+        content = content.replace('/* GENERATED: MEMORY_INITIALISATION */', self.generated_memory_initialisation())
+        content = content.replace('/* GENERATED: MEMORY_LENGTH */', self.generated_memory_length())
+        content = content.replace('/* GENERATED: MAX_FLIPS */', self.generated_max_flips())
+        content = content.replace('/* GENERATED: INITIAL_PC */', self.generated_initial_pc())
 
         with open(template, 'w') as file:
             file.write(content)
@@ -244,7 +260,7 @@ class RISCVProgram:
         elif lhs == '.word':
             return int(rhs).to_bytes(4, 'little', signed=True)
         else:
-            # Unknow data type
+            v_print(f'Unknwon global symbol initialisation type "{lhs}" with "{rhs}".')
             raise SystemExit
 
     @staticmethod
@@ -252,7 +268,7 @@ class RISCVProgram:
         return sum(RISCVProgram.data_size(line) for line in lines)
 
     @staticmethod
-    def parse(path: str, memory: int, max_flips: int) -> "RISCVProgram":
+    def parse(path: str, memory: int, max_flips: int, initial_pc: str = '0') -> "RISCVProgram":
         # First we parse the file into segments which are seperated by an identifier such as "g_ptc"
         # or "verifyPIN:" - the pattern is that they all end with ":". The proceeding line as then
         # bundled into the segment which we then process later.
@@ -280,7 +296,7 @@ class RISCVProgram:
             program = RISCVProgram.parse_program(segments[index])
             programs.append(program)
 
-        return RISCVProgram(symbols, programs, memory, max_flips, assertions)
+        return RISCVProgram(symbols, programs, initial_pc, memory, max_flips, assertions)
 
     @staticmethod
     def parse_program(segment: Tuple[str, List[str]]) -> Tuple[str, List[Tuple[str, str, str, str]]]:
@@ -332,7 +348,7 @@ class RISCVProgram:
     def parse_operands(values: List[str]) -> Tuple[str, str, str]:
         operands = [ operand for value in values for operand in RISCVProgram.parse_operand(value) ]
         if len(operands) > 3:
-            # Too many operands
+            v_print(f'Too many instruction operands "{values}".')
             raise SystemExit
         elif len(operands) < 3:
             operands.extend([''] * (3 - len(operands)))
@@ -363,6 +379,7 @@ class RISCVProgram:
             'jr': 'JR_CODE',
             'seqz': 'SEQZ_CODE',
             'blt': 'BLT_CODE',
+            'call': 'CALL_CODE',
         }
 
         split = line.split(' ')
@@ -372,12 +389,12 @@ class RISCVProgram:
             return (opcode_map[split[0]], '', '', '')
         
         if len(split) != 2:
-            # Unknown or unsupported instruction
+            v_print(f'Unknown instruction layout: "{line}".')
             raise SystemExit
 
         (instruction, values) = split
         if instruction not in opcode_map:
-            # Unknown or unsupported instruction
+            v_print(f'Unknown or unsupported instruction does not have an OP_CODE: "{instruction}".')
             raise SystemExit
 
         operands = RISCVProgram.parse_operands(values.split(','))
@@ -410,6 +427,7 @@ class RISCVProgram:
                     if segment is not None:
                         (_, current_segment) = segments[len(segments) - 1]
                         if len(current_segment) == 0:
+                            v_print(f'The segment "{current_segment}" is empty.')
                             raise SystemExit
 
                     # We remove ':' and '()' as some labels may end with it for some reason.
@@ -423,6 +441,7 @@ class RISCVProgram:
                     # we are currently not inside a segment so where does this belong?
                     # This error is just handled by exiting because the assembly file is unsupported.
                     if segment is None:
+                        v_print(f'The line "{line}" is not in a segment.')
                         raise SystemExit
 
                     segment_index = len(segments) - 1
@@ -462,9 +481,22 @@ def main():
         '-f', '--flips', type=int, default=1,
         help="The number of flips an attacker can perform."
     )
+    parser.add_argument(
+        '-p', '--pc', type=str, default=1,
+        help="The number of flips an attacker can perform."
+    )
+    parser.add_argument(
+        '-v', '--verbose', action='store_true',
+        help='Enable verbose mode: print detailed step-by-step output to the terminal.'
+    )
     
     args = parser.parse_args()
-    program = RISCVProgram.parse(args.file, args.memory, args.flips)
+
+    # For nwo the verbose printing flag is globally set.
+    global __verbose
+    __verbose = args.verbose
+
+    program = RISCVProgram.parse(args.file, args.memory, args.flips, args.pc)
 
     # Copy the template at --template and save to --output.
     # Then fill the copied template with the generated code.

@@ -15,7 +15,6 @@ void todo() { panic(); }
 
 /* Values for attacker */
 const int32_t MAX_FLIPS = 0;
-
 int remaining_flips = MAX_FLIPS;
 
 /* To keep track of the number of executed instructions */
@@ -52,8 +51,7 @@ typedef struct {
 // Ergo. the stack starts at the greatest index. The data starts at
 //    the smallest index. The heap starts right after the data.
 
-const int32_t MEMORY_LENGTH = 64;
-
+const int32_t MEMORY_LENGTH = 512;
 typedef int[0, MEMORY_LENGTH - 1] address_t;
 uint8_t memory[MEMORY_LENGTH];
 
@@ -117,7 +115,6 @@ void w_mem_i32(address_t address, int32_t value) {
 
 const int32_t PROGRAM_LENGTH = 89;
 
-
 instruction_t program[PROGRAM_LENGTH];
 
 // The program counter (PC) to keep track of which instruction to execute.
@@ -136,20 +133,17 @@ const pc_t L9 = 66;
 const pc_t L10 = 80;
 const pc_t L2 = 84;
 const pc_t L11 = 85;
-
 const int32_t GLOBAL_SYMBOLS_SIZE = 11;
-
 const address_t g_countermeasure = 0;
 const address_t g_ptc = 1;
 const address_t g_authenticated = 2;
 const address_t g_userPin = 3;
 const address_t g_cardPin = 7;
 
-
 /* Documentation */
 // https://gse.ufsc.br/bezerra/wp-content/uploads/2022/04/Lecture7.pdf
 // https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/notebooks/RISCV/RISCV_CARD.pdf
-typedef int[0, 20] opcode_t;
+typedef int[0, 21] opcode_t;
 const opcode_t ADDI_CODE = 0;
 const opcode_t   SW_CODE = 1;
 const opcode_t   LW_CODE = 2;
@@ -171,6 +165,7 @@ const opcode_t   MV_CODE = 17; // Pseudo-instruction.
 const opcode_t   JR_CODE = 18; // Pseudo-instruction.
 const opcode_t SEQZ_CODE = 19; // Pseudo-instruction.
 const opcode_t  BLT_CODE = 20; // We assume that it is always to a lable (op3).
+const opcode_t CALL_CODE = 21; // Pseduo-instruction.
 
 /* CPU Registers "https://msyksphinz-self.github.io/riscv-isadoc/html/regs.html" */
 typedef int[0, 31] register_t;
@@ -348,6 +343,13 @@ void execute() {
             // We assume that the labels point directly to the pc to jump to.
             pc = instruction.op3;
         }
+    } else if (instruction.code == CALL_CODE) {
+        // Note: This is a pseudo-instruction. Implementaiton based on JAL.
+        // Implementaion (~JAL): reg[ra] = pc; pc = LAB[op1]
+        // PC is incremented to the next instruction when entering this function.
+        //     Therefoew, we dont increase the PC when assigning ra to it.
+        registers[ra] = pc;
+        pc = instruction.op1;
     } else {
         panic(); // Unknown instruction type.
     }
@@ -356,7 +358,7 @@ void execute() {
 }
 
 bool valid_instruction() {
-    if (instruction.code == J_CODE) {
+    if (instruction.code == J_CODE || instruction.code == CALL_CODE) {
         // Implementation: pc = lab[op1]
         return (instruction.op1 &gt;= 0 &amp;&amp; instruction.op1 &lt; PROGRAM_LENGTH);
     } else if (instruction.code == SB_CODE || instruction.code == LBU_CODE || instruction.code == LB_CODE) {
@@ -472,6 +474,8 @@ int execution_time(int32_t code) {
     } else if (code == BLT_CODE) {
         // Implementation: if reg[op1] &lt; reg[op2] then pc = lab[op3]
         return 3 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == CALL_CODE) {
+        return 2 * REGISTER_WRITE_TIME;
     }
 
     return -1;
@@ -1094,7 +1098,8 @@ void write_registers(instruction_t instruction) {
             instruction.code == ADD_CODE ||
             instruction.code == LBU_CODE ||
             instruction.code == MV_CODE ||
-            instruction.code == SEQZ_CODE) {
+            instruction.code == SEQZ_CODE ||
+            instruction.code == CALL_CODE) {
         // Implementation ADDI_CODE: reg[op1] = reg[op2] + op3
         // Implementation LW_CODE: reg[op1] = mem[reg[op2] + op3]
         // Implementation LUI_CODE: reg[op1] = op2
@@ -1389,7 +1394,6 @@ program[86] = line_86;
 program[87] = line_87;
 program[88] = line_88;
 
-
     memory[0] = 0; // 0'it byte of g_countermeasure
 memory[1] = 3; // 0'it byte of g_ptc
 memory[2] = 0; // 0'it byte of g_authenticated
@@ -1402,10 +1406,9 @@ memory[8] = 2; // 1'it byte of g_cardPin
 memory[9] = 3; // 2'it byte of g_cardPin
 memory[10] = 4; // 3'it byte of g_cardPin
 
-
     // Init Stack Pointer (SP) and Program Counter (PC).
     registers[sp] = MEMORY_LENGTH - 1;
-    pc = 0;
+    pc = verifyPIN;
 }</declaration>
 		<location id="id82" x="-1598" y="-1232">
 			<name x="-1581" y="-1241">FETCHING</name>
@@ -1535,9 +1538,6 @@ system vm;
 		<query>
 			<formula>strategy Access = control: A&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170</formula>
 			<comment/>
-			<result outcome="failure" type="quality" timestamp="2025-03-20 14:40:45 +0100">
-				<option key="--diagnostic" value="0"/>
-			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_ptc) &gt;= 3 under Access</formula>
@@ -1554,9 +1554,6 @@ system vm;
 		<query>
 			<formula>strategy UndetectedAccess = control: A&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170 under Undetected</formula>
 			<comment/>
-			<result outcome="failure" type="quality" timestamp="2025-03-20 14:40:46 +0100">
-				<option key="--diagnostic" value="0"/>
-			</result>
 		</query>
 		<query>
 			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_ptc) &gt;= 3 under UndetectedAccess</formula>

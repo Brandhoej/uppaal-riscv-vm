@@ -14,7 +14,7 @@ void todo() { panic(); }
  */
 
 /* Values for attacker */
-/* GENERATED: MAX_FLIPS */
+const int32_t MAX_FLIPS = 0;
 int remaining_flips = MAX_FLIPS;
 
 /* To keep track of the number of executed instructions */
@@ -51,7 +51,7 @@ typedef struct {
 // Ergo. the stack starts at the greatest index. The data starts at
 //    the smallest index. The heap starts right after the data.
 
-/* GENERATED: MEMORY_LENGTH */
+const int32_t MEMORY_LENGTH = 64;
 typedef int[0, MEMORY_LENGTH - 1] address_t;
 uint8_t memory[MEMORY_LENGTH];
 
@@ -113,7 +113,7 @@ void w_mem_i32(address_t address, int32_t value) {
     memory[address + 3] = (value &gt;&gt; 0) &amp; 255;
 }
 
-/* GENERATED: PROGRAM_LENGTH */
+const int32_t PROGRAM_LENGTH = 83;
 
 instruction_t program[PROGRAM_LENGTH];
 
@@ -122,9 +122,22 @@ instruction_t program[PROGRAM_LENGTH];
 typedef int[0, PROGRAM_LENGTH] pc_t;
 pc_t pc = 0;
 
-/* GENERATED: LABELS */
-/* GENERATED: GLOBAL_SYMBOLS_SIZE */
-/* GENERATED: GLOBAL_SYMBOLS */
+const pc_t verifyPIN = 0;
+const pc_t L5 = 24;
+const pc_t L4 = 35;
+const pc_t L3 = 38;
+const pc_t L6 = 48;
+const pc_t L7 = 54;
+const pc_t L8 = 56;
+const pc_t L10 = 67;
+const pc_t L2 = 78;
+const pc_t L11 = 79;
+const int32_t GLOBAL_SYMBOLS_SIZE = 11;
+const address_t g_countermeasure = 0;
+const address_t g_ptc = 1;
+const address_t g_authenticated = 2;
+const address_t g_userPin = 3;
+const address_t g_cardPin = 7;
 
 /* Documentation */
 // https://gse.ufsc.br/bezerra/wp-content/uploads/2022/04/Lecture7.pdf
@@ -1201,13 +1214,188 @@ clock runtime; // Used to control the time an instruction takes to execute.
 clock total_time;
 
 void setup() {
-    /* GENERATED: PROGRAM */
+    instruction_t line_0 = { ADDI_CODE, sp, sp, -32 }; // verifyPIN
+instruction_t line_1 = { SW_CODE, ra, sp, 28 }; 
+instruction_t line_2 = { SW_CODE, s0, sp, 24 }; 
+instruction_t line_3 = { ADDI_CODE, s0, sp, 32 }; 
+instruction_t line_4 = { LUI_CODE, a5, symbol_high(g_authenticated), 0 }; 
+instruction_t line_5 = { LI_CODE, a4, 85, 0 }; 
+instruction_t line_6 = { SB_CODE, a4, a5, symbol_low(g_authenticated) }; 
+instruction_t line_7 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
+instruction_t line_8 = { LB_CODE, a5, a5, symbol_low(g_ptc) }; 
+instruction_t line_9 = { BLE_CODE, a5, zero, L2 }; 
+instruction_t line_10 = { LUI_CODE, a5, symbol_high(g_userPin), 0 }; 
+instruction_t line_11 = { ADDI_CODE, a5, a5, symbol_low(g_userPin) }; 
+instruction_t line_12 = { SW_CODE, a5, s0, -20 }; 
+instruction_t line_13 = { LUI_CODE, a5, symbol_high(g_cardPin), 0 }; 
+instruction_t line_14 = { ADDI_CODE, a5, a5, symbol_low(g_cardPin) }; 
+instruction_t line_15 = { SW_CODE, a5, s0, -24 }; 
+instruction_t line_16 = { LI_CODE, a5, 4, 0 }; 
+instruction_t line_17 = { SB_CODE, a5, s0, -25 }; 
+instruction_t line_18 = { LI_CODE, a5, 85, 0 }; 
+instruction_t line_19 = { SB_CODE, a5, s0, -26 }; 
+instruction_t line_20 = { LI_CODE, a5, 85, 0 }; 
+instruction_t line_21 = { SB_CODE, a5, s0, -27 }; 
+instruction_t line_22 = { SW_CODE, zero, s0, -32 }; 
+instruction_t line_23 = { J_CODE, L3, 0, 0 }; 
+instruction_t line_24 = { LW_CODE, a5, s0, -32 }; // L5
+instruction_t line_25 = { LW_CODE, a4, s0, -20 }; 
+instruction_t line_26 = { ADD_CODE, a5, a4, a5 }; 
+instruction_t line_27 = { LBU_CODE, a4, a5, 0 }; 
+instruction_t line_28 = { LW_CODE, a5, s0, -32 }; 
+instruction_t line_29 = { LW_CODE, a3, s0, -24 }; 
+instruction_t line_30 = { ADD_CODE, a5, a3, a5 }; 
+instruction_t line_31 = { LBU_CODE, a5, a5, 0 }; 
+instruction_t line_32 = { BEQ_CODE, a4, a5, L4 }; 
+instruction_t line_33 = { LI_CODE, a5, -86, 0 }; 
+instruction_t line_34 = { SB_CODE, a5, s0, -27 }; 
+instruction_t line_35 = { LW_CODE, a5, s0, -32 }; // L4
+instruction_t line_36 = { ADDI_CODE, a5, a5, 1 }; 
+instruction_t line_37 = { SW_CODE, a5, s0, -32 }; 
+instruction_t line_38 = { LBU_CODE, a5, s0, -25 }; // L3
+instruction_t line_39 = { LW_CODE, a4, s0, -32 }; 
+instruction_t line_40 = { BLT_CODE, a4, a5, L5 }; 
+instruction_t line_41 = { LBU_CODE, a5, s0, -25 }; 
+instruction_t line_42 = { LW_CODE, a4, s0, -32 }; 
+instruction_t line_43 = { BEQ_CODE, a4, a5, L6 }; 
+instruction_t line_44 = { LUI_CODE, a5, symbol_high(g_countermeasure), 0 }; 
+instruction_t line_45 = { LI_CODE, a4, 1, 0 }; 
+instruction_t line_46 = { SB_CODE, a4, a5, symbol_low(g_countermeasure) }; 
+instruction_t line_47 = { NOP_CODE, 0, 0, 0 }; 
+instruction_t line_48 = { LBU_CODE, a4, s0, -27 }; // L6
+instruction_t line_49 = { LI_CODE, a5, 85, 0 }; 
+instruction_t line_50 = { BNE_CODE, a4, a5, L7 }; 
+instruction_t line_51 = { LI_CODE, a5, -86, 0 }; 
+instruction_t line_52 = { SB_CODE, a5, s0, -26 }; 
+instruction_t line_53 = { J_CODE, L8, 0, 0 }; 
+instruction_t line_54 = { LI_CODE, a5, 85, 0 }; // L7
+instruction_t line_55 = { SB_CODE, a5, s0, -26 }; 
+instruction_t line_56 = { LBU_CODE, a4, s0, -26 }; // L8
+instruction_t line_57 = { LI_CODE, a5, 170, 0 }; 
+instruction_t line_58 = { BNE_CODE, a4, a5, L10 }; 
+instruction_t line_59 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
+instruction_t line_60 = { LI_CODE, a4, 3, 0 }; 
+instruction_t line_61 = { SB_CODE, a4, a5, symbol_low(g_ptc) }; 
+instruction_t line_62 = { LUI_CODE, a5, symbol_high(g_authenticated), 0 }; 
+instruction_t line_63 = { LI_CODE, a4, -86, 0 }; 
+instruction_t line_64 = { SB_CODE, a4, a5, symbol_low(g_authenticated) }; 
+instruction_t line_65 = { LI_CODE, a5, 170, 0 }; 
+instruction_t line_66 = { J_CODE, L11, 0, 0 }; 
+instruction_t line_67 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; // L10
+instruction_t line_68 = { LB_CODE, a5, a5, symbol_low(g_ptc) }; 
+instruction_t line_69 = { ANDI_CODE, a5, a5, 255 }; 
+instruction_t line_70 = { ADDI_CODE, a5, a5, -1 }; 
+instruction_t line_71 = { ANDI_CODE, a5, a5, 255 }; 
+instruction_t line_72 = { SLLI_CODE, a4, a5, 24 }; 
+instruction_t line_73 = { SRAI_CODE, a4, a4, 24 }; 
+instruction_t line_74 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
+instruction_t line_75 = { SB_CODE, a4, a5, symbol_low(g_ptc) }; 
+instruction_t line_76 = { LI_CODE, a5, 85, 0 }; 
+instruction_t line_77 = { J_CODE, L11, 0, 0 }; 
+instruction_t line_78 = { LI_CODE, a5, 85, 0 }; // L2
+instruction_t line_79 = { MV_CODE, a0, a5, 0 }; // L11
+instruction_t line_80 = { LW_CODE, ra, sp, 28 }; 
+instruction_t line_81 = { LW_CODE, s0, sp, 24 }; 
+instruction_t line_82 = { ADDI_CODE, sp, sp, 32 }; 
+program[0] = line_0;
+program[1] = line_1;
+program[2] = line_2;
+program[3] = line_3;
+program[4] = line_4;
+program[5] = line_5;
+program[6] = line_6;
+program[7] = line_7;
+program[8] = line_8;
+program[9] = line_9;
+program[10] = line_10;
+program[11] = line_11;
+program[12] = line_12;
+program[13] = line_13;
+program[14] = line_14;
+program[15] = line_15;
+program[16] = line_16;
+program[17] = line_17;
+program[18] = line_18;
+program[19] = line_19;
+program[20] = line_20;
+program[21] = line_21;
+program[22] = line_22;
+program[23] = line_23;
+program[24] = line_24;
+program[25] = line_25;
+program[26] = line_26;
+program[27] = line_27;
+program[28] = line_28;
+program[29] = line_29;
+program[30] = line_30;
+program[31] = line_31;
+program[32] = line_32;
+program[33] = line_33;
+program[34] = line_34;
+program[35] = line_35;
+program[36] = line_36;
+program[37] = line_37;
+program[38] = line_38;
+program[39] = line_39;
+program[40] = line_40;
+program[41] = line_41;
+program[42] = line_42;
+program[43] = line_43;
+program[44] = line_44;
+program[45] = line_45;
+program[46] = line_46;
+program[47] = line_47;
+program[48] = line_48;
+program[49] = line_49;
+program[50] = line_50;
+program[51] = line_51;
+program[52] = line_52;
+program[53] = line_53;
+program[54] = line_54;
+program[55] = line_55;
+program[56] = line_56;
+program[57] = line_57;
+program[58] = line_58;
+program[59] = line_59;
+program[60] = line_60;
+program[61] = line_61;
+program[62] = line_62;
+program[63] = line_63;
+program[64] = line_64;
+program[65] = line_65;
+program[66] = line_66;
+program[67] = line_67;
+program[68] = line_68;
+program[69] = line_69;
+program[70] = line_70;
+program[71] = line_71;
+program[72] = line_72;
+program[73] = line_73;
+program[74] = line_74;
+program[75] = line_75;
+program[76] = line_76;
+program[77] = line_77;
+program[78] = line_78;
+program[79] = line_79;
+program[80] = line_80;
+program[81] = line_81;
+program[82] = line_82;
 
-    /* GENERATED: MEMORY_INITIALISATION */
+    memory[0] = 0; // 0'it byte of g_countermeasure
+memory[1] = 0; // 0'it byte of g_ptc
+memory[2] = 0; // 0'it byte of g_authenticated
+memory[3] = 0; // 0'it byte of g_userPin
+memory[4] = 0; // 1'it byte of g_userPin
+memory[5] = 0; // 2'it byte of g_userPin
+memory[6] = 0; // 3'it byte of g_userPin
+memory[7] = 0; // 0'it byte of g_cardPin
+memory[8] = 0; // 1'it byte of g_cardPin
+memory[9] = 0; // 2'it byte of g_cardPin
+memory[10] = 0; // 3'it byte of g_cardPin
 
     // Init Stack Pointer (SP) and Program Counter (PC).
     registers[sp] = MEMORY_LENGTH - 1;
-    /* GENERATED: INITIAL_PC */
+    pc = verifyPIN;
 }</declaration>
 		<location id="id82" x="-1598" y="-1232">
 			<name x="-1581" y="-1241">FETCHING</name>
