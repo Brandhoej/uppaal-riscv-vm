@@ -590,7 +590,6 @@ remaining_flips--</label>
 			<committed/>
 		</location>
 		<location id="id20" x="-1249" y="-952">
-			<label kind="exponentialrate" x="-1241" y="-943">1</label>
 		</location>
 		<location id="id21" x="-1249" y="-884">
 			<name x="-1292" y="-867">FLIP</name>
@@ -696,7 +695,6 @@ pc &lt; PROGRAM_LENGTH - 1</label>
 			<committed/>
 		</location>
 		<location id="id40" x="-739" y="-536">
-			<label kind="exponentialrate" x="-756" y="-527">1</label>
 		</location>
 		<location id="id41" x="-858" y="-536">
 		</location>
@@ -732,7 +730,6 @@ remaining_flips--</label>
 			<committed/>
 		</location>
 		<location id="id46" x="-960" y="-833">
-			<label kind="invariant" x="-977" y="-824">1</label>
 		</location>
 		<location id="id47" x="-1079" y="-833">
 		</location>
@@ -771,7 +768,6 @@ remaining_flips &gt; 0 &amp;&amp; ready</label>
 			<committed/>
 		</location>
 		<location id="id53" x="-1002" y="-825">
-			<label kind="exponentialrate" x="-1020" y="-816">1</label>
 		</location>
 		<init ref="id51"/>
 		<transition id="id54">
@@ -1224,9 +1220,11 @@ void setup() {
 		</location>
 		<location id="id84" x="-1836" y="-1164">
 			<name x="-1853" y="-1148">DONE</name>
+			<committed/>
 		</location>
 		<location id="id85" x="-1121" y="-1299">
 			<name x="-1130" y="-1282">ERR</name>
+			<committed/>
 		</location>
 		<location id="id86" x="-1717" y="-1232">
 			<committed/>

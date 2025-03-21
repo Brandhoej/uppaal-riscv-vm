@@ -1,0 +1,483 @@
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742498046
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/INL-VerifyPIN_0/VerifyPIN_0---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 44741 states
+ -- States explored : 0 states
+ -- CPU user time used : 437 ms
+ -- Virtual memory used : 91708 KiB
+ -- Resident memory used : 49588 KiB
+
+Verifying formula 2 at ./experiments/INL-VerifyPIN_0/VerifyPIN_0---ORC----query.q:2
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 207 ms
+ -- Virtual memory used : 91708 KiB
+ -- Resident memory used : 49588 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742498047
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/INL-VerifyPIN_1_HB/VerifyPIN_1_HB---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 53514 states
+ -- States explored : 0 states
+ -- CPU user time used : 662 ms
+ -- Virtual memory used : 120168 KiB
+ -- Resident memory used : 77296 KiB
+
+Verifying formula 2 at ./experiments/INL-VerifyPIN_1_HB/VerifyPIN_1_HB---ORC----query.q:2
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 2591 ms
+ -- Virtual memory used : 120168 KiB
+ -- Resident memory used : 77296 KiB
+
+Verifying formula 3 at ./experiments/INL-VerifyPIN_1_HB/VerifyPIN_1_HB---ORC----query.q:4
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 54483 states
+ -- States explored : 0 states
+ -- CPU user time used : 421 ms
+ -- Virtual memory used : 139084 KiB
+ -- Resident memory used : 96304 KiB
+
+Verifying formula 4 at ./experiments/INL-VerifyPIN_1_HB/VerifyPIN_1_HB---ORC----query.q:5
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 267 ms
+ -- Virtual memory used : 139216 KiB
+ -- Resident memory used : 96304 KiB
+
+Verifying formula 5 at ./experiments/INL-VerifyPIN_1_HB/VerifyPIN_1_HB---ORC----query.q:7
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 54483 states
+ -- States explored : 0 states
+ -- CPU user time used : 499 ms
+ -- Virtual memory used : 158440 KiB
+ -- Resident memory used : 115576 KiB
+
+Verifying formula 6 at ./experiments/INL-VerifyPIN_1_HB/VerifyPIN_1_HB---ORC----query.q:8
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 285 ms
+ -- Virtual memory used : 158572 KiB
+ -- Resident memory used : 115840 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742498053
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/INL-VerifyPIN_2_HB+FTL/VerifyPIN_2_HB+FTL---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 144533 states
+ -- States explored : 0 states
+ -- CPU user time used : 2308 ms
+ -- Virtual memory used : 232480 KiB
+ -- Resident memory used : 189640 KiB
+
+Verifying formula 2 at ./experiments/INL-VerifyPIN_2_HB+FTL/VerifyPIN_2_HB+FTL---ORC----query.q:2
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 6814 ms
+ -- Virtual memory used : 232612 KiB
+ -- Resident memory used : 189640 KiB
+
+Verifying formula 3 at ./experiments/INL-VerifyPIN_2_HB+FTL/VerifyPIN_2_HB+FTL---ORC----query.q:4
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 171162 states
+ -- States explored : 0 states
+ -- CPU user time used : 1745 ms
+ -- Virtual memory used : 296676 KiB
+ -- Resident memory used : 254380 KiB
+
+Verifying formula 4 at ./experiments/INL-VerifyPIN_2_HB+FTL/VerifyPIN_2_HB+FTL---ORC----query.q:5
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 284 ms
+ -- Virtual memory used : 296808 KiB
+ -- Resident memory used : 254644 KiB
+
+Verifying formula 5 at ./experiments/INL-VerifyPIN_2_HB+FTL/VerifyPIN_2_HB+FTL---ORC----query.q:7
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 171162 states
+ -- States explored : 0 states
+ -- CPU user time used : 1621 ms
+ -- Virtual memory used : 351456 KiB
+ -- Resident memory used : 309292 KiB
+
+Verifying formula 6 at ./experiments/INL-VerifyPIN_2_HB+FTL/VerifyPIN_2_HB+FTL---ORC----query.q:8
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 209 ms
+ -- Virtual memory used : 351456 KiB
+ -- Resident memory used : 309292 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742498069
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/INL-VerifyPIN_3_HB+FTL+INL/VerifyPIN_3_HB+FTL+INL---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 127731 states
+ -- States explored : 0 states
+ -- CPU user time used : 1967 ms
+ -- Virtual memory used : 206172 KiB
+ -- Resident memory used : 163952 KiB
+
+Verifying formula 2 at ./experiments/INL-VerifyPIN_3_HB+FTL+INL/VerifyPIN_3_HB+FTL+INL---ORC----query.q:2
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 6016 ms
+ -- Virtual memory used : 206172 KiB
+ -- Resident memory used : 163952 KiB
+
+Verifying formula 3 at ./experiments/INL-VerifyPIN_3_HB+FTL+INL/VerifyPIN_3_HB+FTL+INL---ORC----query.q:4
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 148537 states
+ -- States explored : 0 states
+ -- CPU user time used : 1270 ms
+ -- Virtual memory used : 261136 KiB
+ -- Resident memory used : 218336 KiB
+
+Verifying formula 4 at ./experiments/INL-VerifyPIN_3_HB+FTL+INL/VerifyPIN_3_HB+FTL+INL---ORC----query.q:5
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 115 ms
+ -- Virtual memory used : 261268 KiB
+ -- Resident memory used : 218600 KiB
+
+Verifying formula 5 at ./experiments/INL-VerifyPIN_3_HB+FTL+INL/VerifyPIN_3_HB+FTL+INL---ORC----query.q:7
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 148537 states
+ -- States explored : 0 states
+ -- CPU user time used : 1076 ms
+ -- Virtual memory used : 308492 KiB
+ -- Resident memory used : 265592 KiB
+
+Verifying formula 6 at ./experiments/INL-VerifyPIN_3_HB+FTL+INL/VerifyPIN_3_HB+FTL+INL---ORC----query.q:8
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 50 ms
+ -- Virtual memory used : 308624 KiB
+ -- Resident memory used : 265856 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742498081
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/INL-VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 183587 states
+ -- States explored : 0 states
+ -- CPU user time used : 3932 ms
+ -- Virtual memory used : 302780 KiB
+ -- Resident memory used : 259676 KiB
+
+Verifying formula 2 at ./experiments/INL-VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC---ORC----query.q:2
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 9362 ms
+ -- Virtual memory used : 302912 KiB
+ -- Resident memory used : 259676 KiB
+
+Verifying formula 3 at ./experiments/INL-VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC---ORC----query.q:4
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 235022 states
+ -- States explored : 0 states
+ -- CPU user time used : 2816 ms
+ -- Virtual memory used : 403188 KiB
+ -- Resident memory used : 360244 KiB
+
+Verifying formula 4 at ./experiments/INL-VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC---ORC----query.q:5
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 267 ms
+ -- Virtual memory used : 403320 KiB
+ -- Resident memory used : 360244 KiB
+
+Verifying formula 5 at ./experiments/INL-VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC---ORC----query.q:7
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 235022 states
+ -- States explored : 0 states
+ -- CPU user time used : 2557 ms
+ -- Virtual memory used : 477080 KiB
+ -- Resident memory used : 434164 KiB
+
+Verifying formula 6 at ./experiments/INL-VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC---ORC----query.q:8
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 20 ms
+ -- Virtual memory used : 477080 KiB
+ -- Resident memory used : 434164 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742498105
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/INL-VerifyPIN_5_HB+FTL+DPTC+DC/VerifyPIN_5_HB+FTL+DPTC+DC---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 161712 states
+ -- States explored : 0 states
+ -- CPU user time used : 3690 ms
+ -- Virtual memory used : 289808 KiB
+ -- Resident memory used : 247276 KiB
+
+Verifying formula 2 at ./experiments/INL-VerifyPIN_5_HB+FTL+DPTC+DC/VerifyPIN_5_HB+FTL+DPTC+DC---ORC----query.q:2
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 9632 ms
+ -- Virtual memory used : 289940 KiB
+ -- Resident memory used : 247276 KiB
+
+Verifying formula 3 at ./experiments/INL-VerifyPIN_5_HB+FTL+DPTC+DC/VerifyPIN_5_HB+FTL+DPTC+DC---ORC----query.q:4
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 183563 states
+ -- States explored : 0 states
+ -- CPU user time used : 2090 ms
+ -- Virtual memory used : 359808 KiB
+ -- Resident memory used : 316708 KiB
+
+Verifying formula 4 at ./experiments/INL-VerifyPIN_5_HB+FTL+DPTC+DC/VerifyPIN_5_HB+FTL+DPTC+DC---ORC----query.q:5
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 218 ms
+ -- Virtual memory used : 359940 KiB
+ -- Resident memory used : 316708 KiB
+
+Verifying formula 5 at ./experiments/INL-VerifyPIN_5_HB+FTL+DPTC+DC/VerifyPIN_5_HB+FTL+DPTC+DC---ORC----query.q:7
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 183563 states
+ -- States explored : 0 states
+ -- CPU user time used : 1947 ms
+ -- Virtual memory used : 417736 KiB
+ -- Resident memory used : 374524 KiB
+
+Verifying formula 6 at ./experiments/INL-VerifyPIN_5_HB+FTL+DPTC+DC/VerifyPIN_5_HB+FTL+DPTC+DC---ORC----query.q:8
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 48 ms
+ -- Virtual memory used : 417868 KiB
+ -- Resident memory used : 374788 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742498127
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/INL-VerifyPIN_6_HB+FTL+INL+DPTC+DT/VerifyPIN_6_HB+FTL+INL+DPTC+DT---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 133391 states
+ -- States explored : 0 states
+ -- CPU user time used : 2247 ms
+ -- Virtual memory used : 220380 KiB
+ -- Resident memory used : 178340 KiB
+
+Verifying formula 2 at ./experiments/INL-VerifyPIN_6_HB+FTL+INL+DPTC+DT/VerifyPIN_6_HB+FTL+INL+DPTC+DT---ORC----query.q:2
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 7055 ms
+ -- Virtual memory used : 220380 KiB
+ -- Resident memory used : 178340 KiB
+
+Verifying formula 3 at ./experiments/INL-VerifyPIN_6_HB+FTL+INL+DPTC+DT/VerifyPIN_6_HB+FTL+INL+DPTC+DT---ORC----query.q:4
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 146617 states
+ -- States explored : 0 states
+ -- CPU user time used : 1323 ms
+ -- Virtual memory used : 272648 KiB
+ -- Resident memory used : 229816 KiB
+
+Verifying formula 4 at ./experiments/INL-VerifyPIN_6_HB+FTL+INL+DPTC+DT/VerifyPIN_6_HB+FTL+INL+DPTC+DT---ORC----query.q:5
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 89 ms
+ -- Virtual memory used : 272780 KiB
+ -- Resident memory used : 229816 KiB
+
+Verifying formula 5 at ./experiments/INL-VerifyPIN_6_HB+FTL+INL+DPTC+DT/VerifyPIN_6_HB+FTL+INL+DPTC+DT---ORC----query.q:7
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 146617 states
+ -- States explored : 0 states
+ -- CPU user time used : 1283 ms
+ -- Virtual memory used : 319372 KiB
+ -- Resident memory used : 276544 KiB
+
+Verifying formula 6 at ./experiments/INL-VerifyPIN_6_HB+FTL+INL+DPTC+DT/VerifyPIN_6_HB+FTL+INL+DPTC+DT---ORC----query.q:8
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 32 ms
+ -- Virtual memory used : 319504 KiB
+ -- Resident memory used : 276544 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742498141
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/INL-VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 193134 states
+ -- States explored : 0 states
+ -- CPU user time used : 6468 ms
+ -- Virtual memory used : 371356 KiB
+ -- Resident memory used : 328796 KiB
+
+Verifying formula 2 at ./experiments/INL-VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC---ORC----query.q:2
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 2207 ms
+ -- Virtual memory used : 371488 KiB
+ -- Resident memory used : 328796 KiB
+
+Verifying formula 3 at ./experiments/INL-VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC---ORC----query.q:4
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 497140 states
+ -- States explored : 0 states
+ -- CPU user time used : 9367 ms
+ -- Virtual memory used : 781584 KiB
+ -- Resident memory used : 738852 KiB
+
+Verifying formula 4 at ./experiments/INL-VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC---ORC----query.q:5
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 380 ms
+ -- Virtual memory used : 781716 KiB
+ -- Resident memory used : 738852 KiB
+
+Verifying formula 5 at ./experiments/INL-VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC---ORC----query.q:7
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 497140 states
+ -- States explored : 0 states
+ -- CPU user time used : 6882 ms
+ -- Virtual memory used : 936652 KiB
+ -- Resident memory used : 893820 KiB
+
+Verifying formula 6 at ./experiments/INL-VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC---ORC----query.q:8
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States explored : 0 states
+ -- CPU user time used : 52 ms
+ -- Virtual memory used : 936784 KiB
+ -- Resident memory used : 894084 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742498171
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/CALL-VerifyPIN_0/VerifyPIN_0---ORC----query.q:1

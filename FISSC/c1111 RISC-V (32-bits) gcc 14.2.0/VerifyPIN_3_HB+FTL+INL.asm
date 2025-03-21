@@ -7,7 +7,7 @@ g_authenticated:
 g_userPin:
         .zero   4
 g_cardPin:
-        .ascii  "\001\002\003\004"
+        .ascii  "\001\001\001\001"
 verifyPIN:
         addi    sp,sp,-32
         sw      ra,28(sp)
@@ -19,15 +19,6 @@ verifyPIN:
         lui     a5,%hi(g_ptc)
         lb      a5,%lo(g_ptc)(a5)
         ble     a5,zero,.L2
-        lui     a5,%hi(g_ptc)
-        lb      a5,%lo(g_ptc)(a5)
-        andi    a5,a5,0xff
-        addi    a5,a5,-1
-        andi    a5,a5,0xff
-        slli    a4,a5,24
-        srai    a4,a4,24
-        lui     a5,%hi(g_ptc)
-        sb      a4,%lo(g_ptc)(a5)
         li      a5,85
         sb      a5,-21(s0)
         li      a5,85
@@ -67,27 +58,16 @@ verifyPIN:
         lbu     a4,-22(s0)
         li      a5,85
         bne     a4,a5,.L7
-        lbu     a4,-22(s0)
-        li      a5,85
-        bne     a4,a5,.L8
         li      a5,-86
         sb      a5,-21(s0)
-        j       .L9
-.L8:
-        lui     a5,%hi(g_countermeasure)
-        li      a4,1
-        sb      a4,%lo(g_countermeasure)(a5)
-        j       .L9
+        j       .L8
 .L7:
         li      a5,85
         sb      a5,-21(s0)
-.L9:
+.L8:
         lbu     a4,-21(s0)
         li      a5,170
-        bne     a4,a5,.L2
-        lbu     a4,-21(s0)
-        li      a5,170
-        bne     a4,a5,.L10
+        bne     a4,a5,.L9
         lui     a5,%hi(g_ptc)
         li      a4,3
         sb      a4,%lo(g_ptc)(a5)
@@ -95,15 +75,22 @@ verifyPIN:
         li      a4,-86
         sb      a4,%lo(g_authenticated)(a5)
         li      a5,170
-        j       .L11
-.L10:
-        lui     a5,%hi(g_countermeasure)
-        li      a4,1
-        sb      a4,%lo(g_countermeasure)(a5)
-        nop
+        j       .L10
+.L9:
+        lui     a5,%hi(g_ptc)
+        lb      a5,%lo(g_ptc)(a5)
+        andi    a5,a5,0xff
+        addi    a5,a5,-1
+        andi    a5,a5,0xff
+        slli    a4,a5,24
+        srai    a4,a4,24
+        lui     a5,%hi(g_ptc)
+        sb      a4,%lo(g_ptc)(a5)
+        li      a5,85
+        j       .L10
 .L2:
         li      a5,85
-.L11:
+.L10:
         mv      a0,a5
         lw      ra,28(sp)
         lw      s0,24(sp)
