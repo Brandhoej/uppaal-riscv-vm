@@ -1315,11 +1315,23 @@ system vm /* GENERATED: FAULT_MODELS */;
 			<comment/>
 		</query>
 		<query>
+			<formula>// SMC Queries</formula>
+			<comment/>
+		</query>
+		<query>
 			<formula>Pr[&lt;=10000; 1000] (&lt;&gt; vm.DONE)</formula>
 			<comment/>
 		</query>
 		<query>
 			<formula>Pr[&lt;=10000; 1000] (&lt;&gt; vm.DONE || vm.ERR)</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>Pr[&lt;=10000; 10000] (&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_authenticated) == 170 &amp;&amp; remaining_flips &lt; MAX_FLIPS)</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>simulate[&lt;=4000; 10000] {remaining_flips, vm.DONE &amp;&amp; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_authenticated) == 170} : vm.DONE &amp;&amp; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_authenticated) == 170 &amp;&amp; remaining_flips &lt; MAX_FLIPS</formula>
 			<comment/>
 		</query>
 		<query>
