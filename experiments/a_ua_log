@@ -1,0 +1,145 @@
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742665421
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at /mnt/d/a_ua_strategies//INL-VerifyPIN_0/VerifyPIN_0---F1---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 970668 states
+ -- States explored : 0 states
+ -- CPU user time used : 8424 ms
+ -- Virtual memory used : 756568 KiB
+ -- Resident memory used : 714212 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742665433
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at /mnt/d/a_ua_strategies//INL-VerifyPIN_1_HB/VerifyPIN_1_HB---F1---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 1152948 states
+ -- States explored : 0 states
+ -- CPU user time used : 10134 ms
+ -- Virtual memory used : 950164 KiB
+ -- Resident memory used : 906820 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742665448
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at /mnt/d/a_ua_strategies//INL-VerifyPIN_2_HB+FTL/VerifyPIN_2_HB+FTL---F1---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 2757508 states
+ -- States explored : 0 states
+ -- CPU user time used : 24919 ms
+ -- Virtual memory used : 2243872 KiB
+ -- Resident memory used : 2201464 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742665483
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at /mnt/d/a_ua_strategies//INL-VerifyPIN_3_HB+FTL+INL/VerifyPIN_3_HB+FTL+INL---F1---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 2353966 states
+ -- States explored : 0 states
+ -- CPU user time used : 20476 ms
+ -- Virtual memory used : 1831672 KiB
+ -- Resident memory used : 1789000 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742665512
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at /mnt/d/a_ua_strategies//INL-VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC---F1---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 3769695 states
+ -- States explored : 0 states
+ -- CPU user time used : 40359 ms
+ -- Virtual memory used : 3527684 KiB
+ -- Resident memory used : 3484524 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742665566
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at /mnt/d/a_ua_strategies//INL-VerifyPIN_5_HB+FTL+DPTC+DC/VerifyPIN_5_HB+FTL+DPTC+DC---F1---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 3347902 states
+ -- States explored : 0 states
+ -- CPU user time used : 41507 ms
+ -- Virtual memory used : 3488684 KiB
+ -- Resident memory used : 3445356 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742665624
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at /mnt/d/a_ua_strategies//INL-VerifyPIN_6_HB+FTL+INL+DPTC+DT/VerifyPIN_6_HB+FTL+INL+DPTC+DT---F1---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 2371873 states
+ -- States explored : 0 states
+ -- CPU user time used : 23827 ms
+ -- Virtual memory used : 1964060 KiB
+ -- Resident memory used : 1921732 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742665657
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at /mnt/d/a_ua_strategies//INL-VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC---F1---ORC----query.q:1
+ -- Formula is satisfied.
+ -- Result: $v_gameInfoPlay
+
+ -- States stored : 8080763 states
+ -- States explored : 0 states
+ -- CPU user time used : 127429 ms
+ -- Virtual memory used : 9705680 KiB
+ -- Resident memory used : 9663304 KiB
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742665829
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at /mnt/d/a_ua_strategies//CALL-VerifyPIN_0/VerifyPIN_0---F1---ORC----query.q:1

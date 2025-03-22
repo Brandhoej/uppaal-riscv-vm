@@ -8,6 +8,7 @@ python = 'python3'
 fill_path = './fill.py'
 template_path = './experiments/template.xml'
 strategy_templates_base = './experiments/strategy_templates'
+output_base = '/mnt/d/rec_strategies'
 
 cooldown: int = 10
 fault_models: List[str] = [
@@ -42,8 +43,8 @@ for flips in [1, 2, 3]:
             program = Path(riscv).stem
 
             # Create identifiers and outputs.
-            output_directory = f'./experiments/{prefix}-{program}'
-            output_stem = f'{program}---{fault_model}---'
+            output_directory = f'{output_base}/{prefix}-{program}'
+            output_stem = f'{program}---F{flips}---{fault_model}---'
             output_path = f'{output_directory}/{output_stem}.xml'
             
             # Create the template.
@@ -85,3 +86,5 @@ for flips in [1, 2, 3]:
             if verifyta_code != 0:
                 print(f'ERROR: VerifyTA failed: {verifyta_code}; {riscv}; {query}; {fault_model}')
                 continue
+
+    break

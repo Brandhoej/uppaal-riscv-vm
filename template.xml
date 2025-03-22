@@ -511,10 +511,10 @@ ready = false</label>
 		<transition id="id7">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="select" x="-968" y="-671">first:  int[0, 0],
-second: int[0, 0],
-third:  int[0, 0],
-fourth: int[0, 0]</label>
+			<label kind="select" x="-968" y="-671">first:  int[0, 1],
+second: int[0, 1],
+third:  int[0, 1],
+fourth: int[0, 1]</label>
 			<label kind="guard" x="-968" y="-595">memory[g_userPin + 0] != memory[g_cardPin + 0] &amp;&amp;
 memory[g_userPin + 1] != memory[g_cardPin + 1] &amp;&amp;
 memory[g_userPin + 2] != memory[g_cardPin + 2] &amp;&amp;
@@ -898,7 +898,8 @@ void write_registers(instruction_t instruction) {
             instruction.code == ADD_CODE ||
             instruction.code == LBU_CODE ||
             instruction.code == MV_CODE ||
-            instruction.code == SEQZ_CODE) {
+            instruction.code == SEQZ_CODE ||
+            instruction.code == CALL_CODE) {
         // Implementation ADDI_CODE: reg[op1] = reg[op2] + op3
         // Implementation LW_CODE: reg[op1] = mem[reg[op2] + op3]
         // Implementation LUI_CODE: reg[op1] = op2
@@ -947,9 +948,9 @@ bool is_read(register_t register) {
 		<location id="id60" x="-884" y="-833">
 			<committed/>
 		</location>
-		<location id="id61" x="-1003" y="-833">
-			<name x="-994" y="-867">WAIT</name>
-			<label kind="exponentialrate" x="-1020" y="-824">1</label>
+		<location id="id61" x="-1079" y="-833">
+			<name x="-1096" y="-875">WAIT</name>
+			<label kind="exponentialrate" x="-1071" y="-824">1</label>
 		</location>
 		<init ref="id57"/>
 		<transition id="id62">
@@ -959,6 +960,7 @@ bool is_read(register_t register) {
 		<transition id="id63">
 			<source ref="id61"/>
 			<target ref="id60"/>
+			<label kind="guard" x="-1062" y="-858">remaining_flips &gt; 0</label>
 		</transition>
 		<transition id="id64">
 			<source ref="id60"/>
@@ -974,10 +976,9 @@ bool is_read(register_t register) {
 		<transition id="id66">
 			<source ref="id58"/>
 			<target ref="id61"/>
-			<label kind="guard" x="-1241" y="-875">remaining_flips &gt; 0 &amp;&amp;
-is_observable(instruction)</label>
-			<label kind="synchronisation" x="-1241" y="-892">executed?</label>
-			<nail x="-1241" y="-833"/>
+			<label kind="guard" x="-1317" y="-858">is_observable(instruction)</label>
+			<label kind="synchronisation" x="-1317" y="-875">executed?</label>
+			<nail x="-1317" y="-833"/>
 		</transition>
 		<transition id="id67">
 			<source ref="id59"/>
