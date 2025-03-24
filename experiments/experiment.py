@@ -1,90 +1,67 @@
 import subprocess
+import shutil
+import fileinput
+import argparse
 
-from pathlib import Path
-from typing import Dict, Tuple, List
+from typing import Dict, Any
 
-verifyta = 'verifyta'
-python = 'python3'
-fill_path = './fill.py'
-template_path = './experiments/template.xml'
-strategy_templates_base = './experiments/strategy_templates'
-output_base = '/mnt/d/rec_strategies'
+def arg_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description='This script processes a RISC-V assembly file and generates an Uppaal model on which SMC queries are run.',
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
 
-cooldown: int = 10
-fault_models: List[str] = [
-    "ORC", "IS", "OORC", "GC", "SC", "PCF", "RC", "MC"
-]
+    parser.add_argument(
+        'query', type=str,
+        help='Path to the query file for the experiment.'
+    )
 
-models: Dict[str, Tuple[str, str]] = {
-    # Inlined:
-    './FISSC/c1111 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm': ('INL', f'{strategy_templates_base}/0_strategy_template.q'),
-    './FISSC/c1111 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_1_HB.asm': ('INL', f'{strategy_templates_base}/1_2_3_4_5_6_7_strategy_template.q'),
-    './FISSC/c1111 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_2_HB+FTL.asm': ('INL', f'{strategy_templates_base}/1_2_3_4_5_6_7_strategy_template.q'),
-    './FISSC/c1111 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_3_HB+FTL+INL.asm': ('INL', f'{strategy_templates_base}/1_2_3_4_5_6_7_strategy_template.q'),
-    './FISSC/c1111 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC.asm': ('INL', f'{strategy_templates_base}/1_2_3_4_5_6_7_strategy_template.q'),
-    './FISSC/c1111 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_5_HB+FTL+DPTC+DC.asm': ('INL', f'{strategy_templates_base}/1_2_3_4_5_6_7_strategy_template.q'),
-    './FISSC/c1111 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_6_HB+FTL+INL+DPTC+DT.asm': ('INL', f'{strategy_templates_base}/1_2_3_4_5_6_7_strategy_template.q'),
-    './FISSC/c1111 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC.asm': ('INL', f'{strategy_templates_base}/1_2_3_4_5_6_7_strategy_template.q'),
-    # Not inline (CALL Instruction):
-    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm': ('CALL', f'{strategy_templates_base}/0_strategy_template.q'),
-    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_1_HB.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_strategy_template.q'),
-    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_2_HB+FTL.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_strategy_template.q'),
-    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_3_HB+FTL+INL.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_strategy_template.q'),
-    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_strategy_template.q'),
-    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_5_HB+FTL+DPTC+DC.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_strategy_template.q'),
-    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_6_HB+FTL+INL+DPTC+DT.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_strategy_template.q'),
-    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_strategy_template.q'),
-}
+    parser.add_argument(
+        '-o', '--output', type=str, default='./',
+        help='Path to the output directory for the experiment.'
+    )
+    parser.add_argument(
+        '-m', '--model', type=str,
+        help='The path to the Uppaal model.'
+    )
 
-for flips in [1, 2, 3]:
-    for fault_model in fault_models:
+    return parser
 
-        for riscv, (prefix, query) in models.items():
-            program = Path(riscv).stem
+def line_replacements(path: str, replacements: Dict[str, str]):
+    with fileinput.input(path, inplace=True) as file:
+        for line in file:
+            for (key, value) in replacements.items():
+                line = line.replace(key, value)
+            # stdout is redirected to the file.
+            # "end=''" avoids adding new lines to the end
+            print(line, end='')
 
-            # Create identifiers and outputs.
-            output_directory = f'{output_base}/{prefix}-{program}'
-            output_stem = f'{program}---F{flips}---{fault_model}---'
-            output_path = f'{output_directory}/{output_stem}.xml'
-            
-            # Create the template.
-            fill_code = subprocess.call([
-                python, fill_path, riscv,
-                '--template', template_path,
-                '--output', output_path,
-                '--cooldown', str(cooldown),
-                '--flips', str(flips),
-                '--fault_models', f'{fault_model}',
-            ])
+def run_verifyta(
+    model_path: str, query_path: str,
+    verifyta: str = 'verifyta',
+    stdout: Any = None
+) -> int:
+    arguments = [
+        verifyta, model_path, query_path,
+        '--silence-progress', '--summary',   
+    ]
 
-            # Check if creating the template failed.
-            if fill_code != 0:
-                print(f'ERROR: Fill failed: {fill_code}; {riscv}; {query}; {fault_model}')
-                continue
+    if isinstance(stdout, str):
+        with open(stdout, 'w') as file:
+            return subprocess.call(arguments, stdout=file)
 
-            # Read the query file.
-            content = ''
-            with open(query) as file:
-                content = file.read()
+    return subprocess.call(arguments, stdout=stdout)
 
-            # Replace the query tags with the unique id for the model.
-            content = content.replace('<<PATH>>', output_directory)
-            content = content.replace('<<MODEL>>', output_stem)
+def replace_and_run(
+    model: str, query: str, output_directory: str, replacements: Dict[str, str],
+):
+    query_output_path = f'{output_directory}/query.q'
+    stdout_output_path = f'{output_directory}/verifyta.log'
 
-            # Write the new query file.
-            query_file = f'{output_directory}/{output_stem}-query.q'
-            with open(query_file, 'w') as file:
-                file.write(content)
+    shutil.copy2(query, query_output_path)
+    line_replacements(query_output_path, replacements)
 
-            # Run VerifyTA to synthesis the strategies.
-            verifyta_code = subprocess.call([
-                verifyta, output_path, query_file,
-                '--silence-progress', '--summary',
-            ])
+    verifyta_process = run_verifyta(model, query_output_path, stdout=stdout_output_path)
 
-            # Check if creating running the queries failed.
-            if verifyta_code != 0:
-                print(f'ERROR: VerifyTA failed: {verifyta_code}; {riscv}; {query}; {fault_model}')
-                continue
-
-    break
+    if verifyta_process != 0:
+        print(f'ERROR: VerifyTA returned with error code: {verifyta_process}')

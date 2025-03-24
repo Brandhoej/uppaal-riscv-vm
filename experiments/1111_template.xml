@@ -473,9 +473,7 @@ int execution_time(int32_t code) {
 	<template>
 		<name>Attacker</name>
 		<parameter>int32_t rest</parameter>
-		<declaration>int8_t initial_pin[4];
-
-clock cooldown;</declaration>
+		<declaration>clock cooldown;</declaration>
 		<location id="id0" x="-994" y="-510">
 			<committed/>
 		</location>
@@ -517,14 +515,14 @@ ready = false</label>
 second: int[0, 1],
 third:  int[0, 1],
 fourth: int[0, 1]</label>
-			<label kind="guard" x="-968" y="-595">memory[g_userPin + 0] != memory[g_cardPin + 0] &amp;&amp;
-memory[g_userPin + 1] != memory[g_cardPin + 1] &amp;&amp;
-memory[g_userPin + 2] != memory[g_cardPin + 2] &amp;&amp;
-memory[g_userPin + 3] != memory[g_cardPin + 3]</label>
-			<label kind="assignment" x="-815" y="-671">memory[g_userPin + 0] = first,  initial_pin[0] = first,
-memory[g_userPin + 1] = second, initial_pin[1] = second,
-memory[g_userPin + 2] = third,  initial_pin[2] = third,
-memory[g_userPin + 3] = fourth, initial_pin[3] = fourth</label>
+			<label kind="guard" x="-816" y="-671">first != memory[g_cardPin + 0] &amp;&amp;
+second != memory[g_cardPin + 1] &amp;&amp;
+third != memory[g_cardPin + 2] &amp;&amp;
+fourth != memory[g_cardPin + 3]</label>
+			<label kind="assignment" x="-969" y="-595">memory[g_userPin + 0] = first,
+memory[g_userPin + 1] = second,
+memory[g_userPin + 2] = third,
+memory[g_userPin + 3] = fourth</label>
 		</transition>
 	</template>
 	<template>
@@ -1346,7 +1344,8 @@ system vm /* GENERATED: FAULT_MODELS */;
 			<comment/>
 		</query>
 		<query>
-			<formula>strategy Undetected = control: A[] mem_u8(g_countermeasure) == 0 &amp;&amp; ((vm.DONE || vm.ERR) imply remaining_flips == 0)</formula>
+			<formula>strategy Undetected = control: A[] mem_u8(g_countermeasure) == 0 &amp;&amp; ((vm.DONE || vm.ERR) imply remaining_flips &lt; MAX_FLIPS)
+</formula>
 			<comment>Pure safety: "control: A[] not(lose)" &lt;=&gt; "control: A[] win"</comment>
 		</query>
 		<query>
@@ -1362,7 +1361,8 @@ system vm /* GENERATED: FAULT_MODELS */;
 			<comment/>
 		</query>
 		<query>
-			<formula>strategy Access = control: A&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170</formula>
+			<formula>strategy Access = control: A&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170 &amp;&amp; remaining_flips &lt; MAX_FLIPS
+</formula>
 			<comment/>
 		</query>
 		<query>
@@ -1378,7 +1378,8 @@ system vm /* GENERATED: FAULT_MODELS */;
 			<comment/>
 		</query>
 		<query>
-			<formula>strategy UndetectedAccess = control: A&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170 under Undetected</formula>
+			<formula>strategy UndetectedAccess = control: A&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_authenticated) == 170 &amp;&amp; remaining_flips &lt; MAX_FLIPS
+</formula>
 			<comment/>
 		</query>
 		<query>
