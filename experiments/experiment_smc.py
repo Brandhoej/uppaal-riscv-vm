@@ -17,7 +17,8 @@ def main():
     args = parser.parse_args()
 
     replace_and_run(
-        args.model, args.query, args.output,
+        args.model, args.query,
+        args.output, args.query_output, args.log_output,
         {
             '<<T>>': str(args.time),
             '<<N>>': str(args.simulations)

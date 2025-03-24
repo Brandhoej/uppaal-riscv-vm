@@ -24,6 +24,14 @@ def arg_parser() -> argparse.ArgumentParser:
         '-m', '--model', type=str,
         help='The path to the Uppaal model.'
     )
+    parser.add_argument(
+        '-qo', '--query-output', type=str, default='./query.q',
+        help='The proceeding path from the output at which the query file is saved.'
+    )
+    parser.add_argument(
+        '-lo', '--log-output', type=str, default='./verifyta.log',
+        help='The proceeding path from the output at which the log file is saved.'
+    )
 
     return parser
 
@@ -53,15 +61,14 @@ def run_verifyta(
     return subprocess.call(arguments, stdout=stdout)
 
 def replace_and_run(
-    model: str, query: str, output_directory: str, replacements: Dict[str, str],
+    model: str, query: str,
+    output_directory: str, query_output: str, log_output: str,
+    replacements: Dict[str, str],
 ):
-    query_output_path = f'{output_directory}/query.q'
-    stdout_output_path = f'{output_directory}/verifyta.log'
+    shutil.copy2(query, query_output)
+    line_replacements(query_output, replacements)
 
-    shutil.copy2(query, query_output_path)
-    line_replacements(query_output_path, replacements)
-
-    verifyta_process = run_verifyta(model, query_output_path, stdout=stdout_output_path)
+    verifyta_process = run_verifyta(model, query_output, stdout=log_output)
 
     if verifyta_process != 0:
         print(f'ERROR: VerifyTA returned with error code: {verifyta_process}')

@@ -4,13 +4,16 @@
 set -e
 
 OUTPUT_DIR=$1
-TIME=10000
-SIMULATIONS=100000
+TIME=10
+SIMULATIONS=10
 
 for FAULT_MODEL in "ORC"; do
     BASE_DIRECTORY=$OUTPUT_DIR/VerifyPIN_0
-    python3 ./fill.py "./FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm" --memory 64 --flips 1 --template ./experiments/1111_template.xml --output "$BASE_DIRECTORY/VerifyPIN_0-$FAULT_MODEL.xml" --fault_models $FAULT_MODEL
-    python3 ./experiments/experiment_smc.py "./experiments/smc/pr_VerifyPIN_0.q" --model "$BASE_DIRECTORY/VerifyPIN_0-$FAULT_MODEL.xml" --output $BASE_DIRECTORY --time $TIME --simulations $SIMULATIONS
+    QUERY_OUTPUT=$BASE_DIRECTORY/VerifyPIN_0--$FAULT_MODEL--query.q
+    LOG_OUTPUT=$BASE_DIRECTORY/VerifyPIN_0--$FAULT_MODEL--verifyta.log
+
+    python3 ./fill.py "./FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm" --memory 64 --flips 1 --template ./experiments/1111_template.xml --output "$BASE_DIRECTORY/VerifyPIN_0--$FAULT_MODEL.xml" --fault_models $FAULT_MODEL
+    python3 ./experiments/experiment_smc.py "./experiments/smc/pr_VerifyPIN_0.q" --model "$BASE_DIRECTORY/VerifyPIN_0--$FAULT_MODEL.xml" --output $BASE_DIRECTORY --time $TIME --simulations $SIMULATIONS --query-output $QUERY_OUTPUT --log-output $LOG_OUTPUT
 
     for PROGRAM in \
         "VerifyPIN_1_HB" \
@@ -21,7 +24,9 @@ for FAULT_MODEL in "ORC"; do
         "VerifyPIN_6_HB+FTL+INL+DPTC+DT" \
         "VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC"; do
         BASE_DIRECTORY=$OUTPUT_DIR/$PROGRAM
-        python3 ./fill.py "./FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/$PROGRAM.asm" --memory 64 --flips 1 --template ./experiments/1111_template.xml --output "$BASE_DIRECTORY/$PROGRAM-$FAULT_MODEL.xml" --fault_models $FAULT_MODEL
-        python3 ./experiments/experiment_smc.py "./experiments/smc/pr_VerifyPIN_1_2_3_4_5_6_7.q" --model "$BASE_DIRECTORY/$PROGRAM-$FAULT_MODEL.xml" --output $BASE_DIRECTORY --time $TIME --simulations $SIMULATIONS
+        QUERY_OUTPUT=$BASE_DIRECTORY/$PROGRAM--$FAULT_MODEL--query.q
+        LOG_OUTPUT=$BASE_DIRECTORY/$PROGRAM--$FAULT_MODEL--verifyta.log
+        python3 ./fill.py "./FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/$PROGRAM.asm" --memory 64 --flips 1 --template ./experiments/1111_template.xml --output "$BASE_DIRECTORY/$PROGRAM--$FAULT_MODEL.xml" --fault_models $FAULT_MODEL
+        python3 ./experiments/experiment_smc.py "./experiments/smc/pr_VerifyPIN_1_2_3_4_5_6_7.q" --model "$BASE_DIRECTORY/$PROGRAM--$FAULT_MODEL.xml" --output $BASE_DIRECTORY --time $TIME --simulations $SIMULATIONS --query-output $QUERY_OUTPUT --log-output $LOG_OUTPUT
     done
 done
