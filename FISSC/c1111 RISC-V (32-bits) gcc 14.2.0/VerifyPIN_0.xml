@@ -51,7 +51,7 @@ typedef struct {
 // Ergo. the stack starts at the greatest index. The data starts at
 //    the smallest index. The heap starts right after the data.
 
-const int32_t MEMORY_LENGTH = 64;
+const int32_t MEMORY_LENGTH = 128;
 typedef int[0, MEMORY_LENGTH - 1] address_t;
 uint8_t memory[MEMORY_LENGTH];
 
@@ -113,7 +113,7 @@ void w_mem_i32(address_t address, int32_t value) {
     memory[address + 3] = (value &gt;&gt; 0) &amp; 255;
 }
 
-const int32_t PROGRAM_LENGTH = 89;
+const int32_t PROGRAM_LENGTH = 76;
 
 instruction_t program[PROGRAM_LENGTH];
 
@@ -122,23 +122,20 @@ instruction_t program[PROGRAM_LENGTH];
 typedef int[0, PROGRAM_LENGTH] pc_t;
 pc_t pc = 0;
 
-const pc_t verifyPIN = 0;
-const pc_t L5 = 25;
-const pc_t L4 = 38;
-const pc_t L3 = 41;
-const pc_t L6 = 51;
+const pc_t byteArrayCompare = 0;
+const pc_t L5 = 10;
+const pc_t L3 = 21;
+const pc_t L2 = 24;
+const pc_t L4 = 28;
+const pc_t verifyPIN = 33;
 const pc_t L8 = 60;
-const pc_t L7 = 64;
-const pc_t L9 = 66;
-const pc_t L10 = 80;
-const pc_t L2 = 84;
-const pc_t L11 = 85;
-const int32_t GLOBAL_SYMBOLS_SIZE = 11;
-const address_t g_countermeasure = 0;
-const address_t g_ptc = 1;
-const address_t g_authenticated = 2;
-const address_t g_userPin = 3;
-const address_t g_cardPin = 7;
+const pc_t L7 = 71;
+const pc_t L9 = 72;
+const int32_t GLOBAL_SYMBOLS_SIZE = 10;
+const address_t g_ptc = 0;
+const address_t g_authenticated = 1;
+const address_t g_userPin = 2;
+const address_t g_cardPin = 6;
 
 /* Documentation */
 // https://gse.ufsc.br/bezerra/wp-content/uploads/2022/04/Lecture7.pdf
@@ -1221,95 +1218,82 @@ clock runtime; // Used to control the time an instruction takes to execute.
 clock total_time;
 
 void setup() {
-    instruction_t line_0 = { ADDI_CODE, sp, sp, -32 }; // verifyPIN
-instruction_t line_1 = { SW_CODE, ra, sp, 28 }; 
-instruction_t line_2 = { SW_CODE, s0, sp, 24 }; 
-instruction_t line_3 = { ADDI_CODE, s0, sp, 32 }; 
-instruction_t line_4 = { LUI_CODE, a5, symbol_high(g_authenticated), 0 }; 
-instruction_t line_5 = { LI_CODE, a4, 85, 0 }; 
-instruction_t line_6 = { SB_CODE, a4, a5, symbol_low(g_authenticated) }; 
-instruction_t line_7 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
-instruction_t line_8 = { LB_CODE, a5, a5, symbol_low(g_ptc) }; 
-instruction_t line_9 = { BLE_CODE, a5, zero, L2 }; 
-instruction_t line_10 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
-instruction_t line_11 = { LB_CODE, a5, a5, symbol_low(g_ptc) }; 
-instruction_t line_12 = { ANDI_CODE, a5, a5, 255 }; 
-instruction_t line_13 = { ADDI_CODE, a5, a5, -1 }; 
-instruction_t line_14 = { ANDI_CODE, a5, a5, 255 }; 
-instruction_t line_15 = { SLLI_CODE, a4, a5, 24 }; 
-instruction_t line_16 = { SRAI_CODE, a4, a4, 24 }; 
-instruction_t line_17 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
-instruction_t line_18 = { SB_CODE, a4, a5, symbol_low(g_ptc) }; 
-instruction_t line_19 = { LI_CODE, a5, 85, 0 }; 
-instruction_t line_20 = { SB_CODE, a5, s0, -21 }; 
-instruction_t line_21 = { LI_CODE, a5, 85, 0 }; 
-instruction_t line_22 = { SB_CODE, a5, s0, -22 }; 
-instruction_t line_23 = { SW_CODE, zero, s0, -20 }; 
-instruction_t line_24 = { J_CODE, L3, 0, 0 }; 
-instruction_t line_25 = { LUI_CODE, a5, symbol_high(g_userPin), 0 }; // L5
-instruction_t line_26 = { ADDI_CODE, a4, a5, symbol_low(g_userPin) }; 
-instruction_t line_27 = { LW_CODE, a5, s0, -20 }; 
-instruction_t line_28 = { ADD_CODE, a5, a4, a5 }; 
-instruction_t line_29 = { LBU_CODE, a4, a5, 0 }; 
-instruction_t line_30 = { LUI_CODE, a5, symbol_high(g_cardPin), 0 }; 
-instruction_t line_31 = { ADDI_CODE, a3, a5, symbol_low(g_cardPin) }; 
-instruction_t line_32 = { LW_CODE, a5, s0, -20 }; 
-instruction_t line_33 = { ADD_CODE, a5, a3, a5 }; 
-instruction_t line_34 = { LBU_CODE, a5, a5, 0 }; 
-instruction_t line_35 = { BEQ_CODE, a4, a5, L4 }; 
-instruction_t line_36 = { LI_CODE, a5, -86, 0 }; 
-instruction_t line_37 = { SB_CODE, a5, s0, -22 }; 
-instruction_t line_38 = { LW_CODE, a5, s0, -20 }; // L4
-instruction_t line_39 = { ADDI_CODE, a5, a5, 1 }; 
-instruction_t line_40 = { SW_CODE, a5, s0, -20 }; 
-instruction_t line_41 = { LW_CODE, a4, s0, -20 }; // L3
-instruction_t line_42 = { LI_CODE, a5, 3, 0 }; 
-instruction_t line_43 = { BLE_CODE, a4, a5, L5 }; 
-instruction_t line_44 = { LW_CODE, a4, s0, -20 }; 
-instruction_t line_45 = { LI_CODE, a5, 4, 0 }; 
-instruction_t line_46 = { BEQ_CODE, a4, a5, L6 }; 
-instruction_t line_47 = { LUI_CODE, a5, symbol_high(g_countermeasure), 0 }; 
-instruction_t line_48 = { LI_CODE, a4, 1, 0 }; 
-instruction_t line_49 = { SB_CODE, a4, a5, symbol_low(g_countermeasure) }; 
-instruction_t line_50 = { NOP_CODE, 0, 0, 0 }; 
-instruction_t line_51 = { LBU_CODE, a4, s0, -22 }; // L6
-instruction_t line_52 = { LI_CODE, a5, 85, 0 }; 
-instruction_t line_53 = { BNE_CODE, a4, a5, L7 }; 
-instruction_t line_54 = { LBU_CODE, a4, s0, -22 }; 
-instruction_t line_55 = { LI_CODE, a5, 85, 0 }; 
-instruction_t line_56 = { BNE_CODE, a4, a5, L8 }; 
-instruction_t line_57 = { LI_CODE, a5, -86, 0 }; 
-instruction_t line_58 = { SB_CODE, a5, s0, -21 }; 
+    instruction_t line_0 = { ADDI_CODE, sp, sp, -48 }; // byteArrayCompare
+instruction_t line_1 = { SW_CODE, ra, sp, 44 }; 
+instruction_t line_2 = { SW_CODE, s0, sp, 40 }; 
+instruction_t line_3 = { ADDI_CODE, s0, sp, 48 }; 
+instruction_t line_4 = { SW_CODE, a0, s0, -36 }; 
+instruction_t line_5 = { SW_CODE, a1, s0, -40 }; 
+instruction_t line_6 = { MV_CODE, a5, a2, 0 }; 
+instruction_t line_7 = { SB_CODE, a5, s0, -41 }; 
+instruction_t line_8 = { SW_CODE, zero, s0, -20 }; 
+instruction_t line_9 = { J_CODE, L2, 0, 0 }; 
+instruction_t line_10 = { LW_CODE, a5, s0, -20 }; // L5
+instruction_t line_11 = { LW_CODE, a4, s0, -36 }; 
+instruction_t line_12 = { ADD_CODE, a5, a4, a5 }; 
+instruction_t line_13 = { LBU_CODE, a4, a5, 0 }; 
+instruction_t line_14 = { LW_CODE, a5, s0, -20 }; 
+instruction_t line_15 = { LW_CODE, a3, s0, -40 }; 
+instruction_t line_16 = { ADD_CODE, a5, a3, a5 }; 
+instruction_t line_17 = { LBU_CODE, a5, a5, 0 }; 
+instruction_t line_18 = { BEQ_CODE, a4, a5, L3 }; 
+instruction_t line_19 = { LI_CODE, a5, 0, 0 }; 
+instruction_t line_20 = { J_CODE, L4, 0, 0 }; 
+instruction_t line_21 = { LW_CODE, a5, s0, -20 }; // L3
+instruction_t line_22 = { ADDI_CODE, a5, a5, 1 }; 
+instruction_t line_23 = { SW_CODE, a5, s0, -20 }; 
+instruction_t line_24 = { LBU_CODE, a5, s0, -41 }; // L2
+instruction_t line_25 = { LW_CODE, a4, s0, -20 }; 
+instruction_t line_26 = { BLT_CODE, a4, a5, L5 }; 
+instruction_t line_27 = { LI_CODE, a5, 1, 0 }; 
+instruction_t line_28 = { MV_CODE, a0, a5, 0 }; // L4
+instruction_t line_29 = { LW_CODE, ra, sp, 44 }; 
+instruction_t line_30 = { LW_CODE, s0, sp, 40 }; 
+instruction_t line_31 = { ADDI_CODE, sp, sp, 48 }; 
+instruction_t line_32 = { JR_CODE, ra, 0, 0 }; 
+instruction_t line_33 = { ADDI_CODE, sp, sp, -16 }; // verifyPIN
+instruction_t line_34 = { SW_CODE, ra, sp, 12 }; 
+instruction_t line_35 = { SW_CODE, s0, sp, 8 }; 
+instruction_t line_36 = { ADDI_CODE, s0, sp, 16 }; 
+instruction_t line_37 = { LUI_CODE, a5, symbol_high(g_authenticated), 0 }; 
+instruction_t line_38 = { SB_CODE, zero, a5, symbol_low(g_authenticated) }; 
+instruction_t line_39 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
+instruction_t line_40 = { LB_CODE, a5, a5, symbol_low(g_ptc) }; 
+instruction_t line_41 = { BLE_CODE, a5, zero, L7 }; 
+instruction_t line_42 = { LI_CODE, a2, 4, 0 }; 
+instruction_t line_43 = { LUI_CODE, a5, symbol_high(g_cardPin), 0 }; 
+instruction_t line_44 = { ADDI_CODE, a1, a5, symbol_low(g_cardPin) }; 
+instruction_t line_45 = { LUI_CODE, a5, symbol_high(g_userPin), 0 }; 
+instruction_t line_46 = { ADDI_CODE, a0, a5, symbol_low(g_userPin) }; 
+instruction_t line_47 = { CALL_CODE, byteArrayCompare, 0, 0 }; 
+instruction_t line_48 = { MV_CODE, a5, a0, 0 }; 
+instruction_t line_49 = { MV_CODE, a4, a5, 0 }; 
+instruction_t line_50 = { LI_CODE, a5, 1, 0 }; 
+instruction_t line_51 = { BNE_CODE, a4, a5, L8 }; 
+instruction_t line_52 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
+instruction_t line_53 = { LI_CODE, a4, 3, 0 }; 
+instruction_t line_54 = { SB_CODE, a4, a5, symbol_low(g_ptc) }; 
+instruction_t line_55 = { LUI_CODE, a5, symbol_high(g_authenticated), 0 }; 
+instruction_t line_56 = { LI_CODE, a4, 1, 0 }; 
+instruction_t line_57 = { SB_CODE, a4, a5, symbol_low(g_authenticated) }; 
+instruction_t line_58 = { LI_CODE, a5, 1, 0 }; 
 instruction_t line_59 = { J_CODE, L9, 0, 0 }; 
-instruction_t line_60 = { LUI_CODE, a5, symbol_high(g_countermeasure), 0 }; // L8
-instruction_t line_61 = { LI_CODE, a4, 1, 0 }; 
-instruction_t line_62 = { SB_CODE, a4, a5, symbol_low(g_countermeasure) }; 
-instruction_t line_63 = { J_CODE, L9, 0, 0 }; 
-instruction_t line_64 = { LI_CODE, a5, 85, 0 }; // L7
-instruction_t line_65 = { SB_CODE, a5, s0, -21 }; 
-instruction_t line_66 = { LBU_CODE, a4, s0, -21 }; // L9
-instruction_t line_67 = { LI_CODE, a5, 170, 0 }; 
-instruction_t line_68 = { BNE_CODE, a4, a5, L2 }; 
-instruction_t line_69 = { LBU_CODE, a4, s0, -21 }; 
-instruction_t line_70 = { LI_CODE, a5, 170, 0 }; 
-instruction_t line_71 = { BNE_CODE, a4, a5, L10 }; 
-instruction_t line_72 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
-instruction_t line_73 = { LI_CODE, a4, 3, 0 }; 
-instruction_t line_74 = { SB_CODE, a4, a5, symbol_low(g_ptc) }; 
-instruction_t line_75 = { LUI_CODE, a5, symbol_high(g_authenticated), 0 }; 
-instruction_t line_76 = { LI_CODE, a4, -86, 0 }; 
-instruction_t line_77 = { SB_CODE, a4, a5, symbol_low(g_authenticated) }; 
-instruction_t line_78 = { LI_CODE, a5, 170, 0 }; 
-instruction_t line_79 = { J_CODE, L11, 0, 0 }; 
-instruction_t line_80 = { LUI_CODE, a5, symbol_high(g_countermeasure), 0 }; // L10
-instruction_t line_81 = { LI_CODE, a4, 1, 0 }; 
-instruction_t line_82 = { SB_CODE, a4, a5, symbol_low(g_countermeasure) }; 
-instruction_t line_83 = { NOP_CODE, 0, 0, 0 }; 
-instruction_t line_84 = { LI_CODE, a5, 85, 0 }; // L2
-instruction_t line_85 = { MV_CODE, a0, a5, 0 }; // L11
-instruction_t line_86 = { LW_CODE, ra, sp, 28 }; 
-instruction_t line_87 = { LW_CODE, s0, sp, 24 }; 
-instruction_t line_88 = { ADDI_CODE, sp, sp, 32 }; 
+instruction_t line_60 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; // L8
+instruction_t line_61 = { LB_CODE, a5, a5, symbol_low(g_ptc) }; 
+instruction_t line_62 = { ANDI_CODE, a5, a5, 255 }; 
+instruction_t line_63 = { ADDI_CODE, a5, a5, -1 }; 
+instruction_t line_64 = { ANDI_CODE, a5, a5, 255 }; 
+instruction_t line_65 = { SLLI_CODE, a4, a5, 24 }; 
+instruction_t line_66 = { SRAI_CODE, a4, a4, 24 }; 
+instruction_t line_67 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
+instruction_t line_68 = { SB_CODE, a4, a5, symbol_low(g_ptc) }; 
+instruction_t line_69 = { LI_CODE, a5, 0, 0 }; 
+instruction_t line_70 = { J_CODE, L9, 0, 0 }; 
+instruction_t line_71 = { LI_CODE, a5, 0, 0 }; // L7
+instruction_t line_72 = { MV_CODE, a0, a5, 0 }; // L9
+instruction_t line_73 = { LW_CODE, ra, sp, 12 }; 
+instruction_t line_74 = { LW_CODE, s0, sp, 8 }; 
+instruction_t line_75 = { ADDI_CODE, sp, sp, 16 }; 
 program[0] = line_0;
 program[1] = line_1;
 program[2] = line_2;
@@ -1386,31 +1370,17 @@ program[72] = line_72;
 program[73] = line_73;
 program[74] = line_74;
 program[75] = line_75;
-program[76] = line_76;
-program[77] = line_77;
-program[78] = line_78;
-program[79] = line_79;
-program[80] = line_80;
-program[81] = line_81;
-program[82] = line_82;
-program[83] = line_83;
-program[84] = line_84;
-program[85] = line_85;
-program[86] = line_86;
-program[87] = line_87;
-program[88] = line_88;
 
-    memory[0] = 0; // 0'it byte of g_countermeasure
-memory[1] = 3; // 0'it byte of g_ptc
-memory[2] = 0; // 0'it byte of g_authenticated
-memory[3] = 0; // 0'it byte of g_userPin
-memory[4] = 0; // 1'it byte of g_userPin
-memory[5] = 0; // 2'it byte of g_userPin
-memory[6] = 0; // 3'it byte of g_userPin
-memory[7] = 1; // 0'it byte of g_cardPin
-memory[8] = 2; // 1'it byte of g_cardPin
-memory[9] = 3; // 2'it byte of g_cardPin
-memory[10] = 4; // 3'it byte of g_cardPin
+    memory[0] = 3; // 0'it byte of g_ptc
+memory[1] = 0; // 0'it byte of g_authenticated
+memory[2] = 0; // 0'it byte of g_userPin
+memory[3] = 0; // 1'it byte of g_userPin
+memory[4] = 0; // 2'it byte of g_userPin
+memory[5] = 0; // 3'it byte of g_userPin
+memory[6] = 1; // 0'it byte of g_cardPin
+memory[7] = 1; // 1'it byte of g_cardPin
+memory[8] = 1; // 2'it byte of g_cardPin
+memory[9] = 1; // 3'it byte of g_cardPin
 
     // Init Stack Pointer (SP) and Program Counter (PC).
     registers[sp] = MEMORY_LENGTH - 1;

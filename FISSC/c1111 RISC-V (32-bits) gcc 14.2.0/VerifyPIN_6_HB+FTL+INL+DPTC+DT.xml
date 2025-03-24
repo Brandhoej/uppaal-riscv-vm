@@ -1408,9 +1408,9 @@ memory[4] = 0; // 1'it byte of g_userPin
 memory[5] = 0; // 2'it byte of g_userPin
 memory[6] = 0; // 3'it byte of g_userPin
 memory[7] = 1; // 0'it byte of g_cardPin
-memory[8] = 2; // 1'it byte of g_cardPin
-memory[9] = 3; // 2'it byte of g_cardPin
-memory[10] = 4; // 3'it byte of g_cardPin
+memory[8] = 1; // 1'it byte of g_cardPin
+memory[9] = 1; // 2'it byte of g_cardPin
+memory[10] = 1; // 3'it byte of g_cardPin
 
     // Init Stack Pointer (SP) and Program Counter (PC).
     registers[sp] = MEMORY_LENGTH - 1;

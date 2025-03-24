@@ -12,7 +12,8 @@ output_base = '/mnt/d/a_ua_strategies/'
 
 cooldown: int = 10
 fault_models: List[str] = [
-    "ORC", "IS", "OORC", "GC", "SC", "PCF", "RC", "MC"
+    # "ORC", "IS", "OORC", "GC", "SC", "PCF", "RC", "MC"
+    "ORC", "IS", "GC", "SC", "PCF"
 ]
 
 models: Dict[str, Tuple[str, str]] = {
@@ -26,17 +27,17 @@ models: Dict[str, Tuple[str, str]] = {
     './FISSC/c1111 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_6_HB+FTL+INL+DPTC+DT.asm': ('INL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
     './FISSC/c1111 INLINED RISC-V (32-bits) gcc 14.2.0/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC.asm': ('INL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
     # Not inline (CALL Instruction):
-    './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm': ('CALL', f'{strategy_templates_base}/0_a_strategy_template.q'),
-    './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_1_HB.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
-    './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_2_HB+FTL.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
-    './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_3_HB+FTL+INL.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
-    './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
-    './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_5_HB+FTL+DPTC+DC.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
-    './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_6_HB+FTL+INL+DPTC+DT.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
-    './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
+    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_0.asm': ('CALL', f'{strategy_templates_base}/0_a_strategy_template.q'),
+    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_1_HB.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
+    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_2_HB+FTL.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
+    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_3_HB+FTL+INL.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
+    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_4_HB+FTL+INL+DPTC+PTCBK+LC.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
+    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_5_HB+FTL+DPTC+DC.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
+    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_6_HB+FTL+INL+DPTC+DT.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
+    # './FISSC/c1111 RISC-V (32-bits) gcc 14.2.0/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC.asm': ('CALL', f'{strategy_templates_base}/1_2_3_4_5_6_7_ua_strategy_template.q'),
 }
 
-for flips in [1, 2, 3]:
+for flips in [1]:
     for fault_model in fault_models:
 
         for riscv, (prefix, query) in models.items():
@@ -79,7 +80,7 @@ for flips in [1, 2, 3]:
             # Run VerifyTA to synthesis the strategies.
             verifyta_code = subprocess.call([
                 verifyta, output_path, query_file,
-                '--silence-progress', '--summary',
+                '--silence-progress',
             ])
 
             # Check if creating running the queries failed.

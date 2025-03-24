@@ -91,4 +91,4 @@ verifyPIN:
         lw      ra,12(sp)
         lw      s0,8(sp)
         addi    sp,sp,16
-        jr      ra
+;        jr      ra

@@ -357,7 +357,11 @@ void execute() {
 }
 
 bool valid_instruction() {
-    if (instruction.code == J_CODE || instruction.code == CALL_CODE) {
+    if (instruction.code == JR_CODE) {
+        // Implementation: pc = reg[op1]
+        int32_t new_pc = registers[instruction.op1];
+        return (new_pc &gt;= 0 &amp;&amp; new_pc &lt; PROGRAM_LENGTH);
+    } else if (instruction.code == J_CODE || instruction.code == CALL_CODE) {
         // Implementation: pc = lab[op1]
         return (instruction.op1 &gt;= 0 &amp;&amp; instruction.op1 &lt; PROGRAM_LENGTH);
     } else if (instruction.code == SB_CODE || instruction.code == LBU_CODE || instruction.code == LB_CODE) {
@@ -478,10 +482,7 @@ int execution_time(int32_t code) {
     }
 
     return -1;
-}
-
-
-</declaration>
+}</declaration>
 	<template>
 		<name>Attacker</name>
 		<parameter>int32_t rest</parameter>
@@ -523,15 +524,15 @@ ready = false</label>
 		<transition id="id7">
 			<source ref="id0"/>
 			<target ref="id1"/>
-			<label kind="select" x="-968" y="-671">first:  int[0, 0],
-second: int[0, 0],
-third:  int[0, 0],
-fourth: int[0, 0]</label>
-			<label kind="guard" x="-968" y="-595">memory[g_userPin + 0] != memory[g_cardPin + 0] &amp;&amp;
-memory[g_userPin + 1] != memory[g_cardPin + 1] &amp;&amp;
-memory[g_userPin + 2] != memory[g_cardPin + 2] &amp;&amp;
-memory[g_userPin + 3] != memory[g_cardPin + 3]</label>
-			<label kind="assignment" x="-815" y="-671">memory[g_userPin + 0] = first,
+			<label kind="select" x="-968" y="-671">first:  int[0, 1],
+second: int[0, 1],
+third:  int[0, 1],
+fourth: int[0, 1]</label>
+			<label kind="guard" x="-816" y="-671">first != memory[g_cardPin + 0] &amp;&amp;
+second != memory[g_cardPin + 1] &amp;&amp;
+third != memory[g_cardPin + 2] &amp;&amp;
+fourth != memory[g_cardPin + 3]</label>
+			<label kind="assignment" x="-969" y="-595">memory[g_userPin + 0] = first,
 memory[g_userPin + 1] = second,
 memory[g_userPin + 2] = third,
 memory[g_userPin + 3] = fourth</label>
@@ -602,6 +603,7 @@ remaining_flips--</label>
 			<committed/>
 		</location>
 		<location id="id20" x="-1249" y="-952">
+			<label kind="exponentialrate" x="-1241" y="-943">1</label>
 		</location>
 		<location id="id21" x="-1249" y="-884">
 			<name x="-1292" y="-867">FLIP</name>
@@ -707,6 +709,7 @@ pc &lt; PROGRAM_LENGTH - 1</label>
 			<committed/>
 		</location>
 		<location id="id40" x="-739" y="-536">
+			<label kind="exponentialrate" x="-756" y="-527">1</label>
 		</location>
 		<location id="id41" x="-858" y="-536">
 		</location>
@@ -742,6 +745,7 @@ remaining_flips--</label>
 			<committed/>
 		</location>
 		<location id="id46" x="-960" y="-833">
+			<label kind="invariant" x="-977" y="-824">1</label>
 		</location>
 		<location id="id47" x="-1079" y="-833">
 		</location>
@@ -780,6 +784,7 @@ remaining_flips &gt; 0 &amp;&amp; ready</label>
 			<committed/>
 		</location>
 		<location id="id53" x="-1002" y="-825">
+			<label kind="exponentialrate" x="-1020" y="-816">1</label>
 		</location>
 		<init ref="id51"/>
 		<transition id="id54">
@@ -906,7 +911,8 @@ void write_registers(instruction_t instruction) {
             instruction.code == ADD_CODE ||
             instruction.code == LBU_CODE ||
             instruction.code == MV_CODE ||
-            instruction.code == SEQZ_CODE) {
+            instruction.code == SEQZ_CODE ||
+            instruction.code == CALL_CODE) {
         // Implementation ADDI_CODE: reg[op1] = reg[op2] + op3
         // Implementation LW_CODE: reg[op1] = mem[reg[op2] + op3]
         // Implementation LUI_CODE: reg[op1] = op2
@@ -955,9 +961,9 @@ bool is_read(register_t register) {
 		<location id="id60" x="-884" y="-833">
 			<committed/>
 		</location>
-		<location id="id61" x="-1003" y="-833">
-			<name x="-994" y="-867">WAIT</name>
-			<label kind="exponentialrate" x="-1020" y="-824">1</label>
+		<location id="id61" x="-1079" y="-833">
+			<name x="-1096" y="-875">WAIT</name>
+			<label kind="exponentialrate" x="-1071" y="-824">1</label>
 		</location>
 		<init ref="id57"/>
 		<transition id="id62">
@@ -967,6 +973,7 @@ bool is_read(register_t register) {
 		<transition id="id63">
 			<source ref="id61"/>
 			<target ref="id60"/>
+			<label kind="guard" x="-1062" y="-858">remaining_flips &gt; 0</label>
 		</transition>
 		<transition id="id64">
 			<source ref="id60"/>
@@ -982,10 +989,9 @@ bool is_read(register_t register) {
 		<transition id="id66">
 			<source ref="id58"/>
 			<target ref="id61"/>
-			<label kind="guard" x="-1241" y="-875">remaining_flips &gt; 0 &amp;&amp;
-is_observable(instruction)</label>
-			<label kind="synchronisation" x="-1241" y="-892">executed?</label>
-			<nail x="-1241" y="-833"/>
+			<label kind="guard" x="-1317" y="-858">is_observable(instruction)</label>
+			<label kind="synchronisation" x="-1317" y="-875">executed?</label>
+			<nail x="-1317" y="-833"/>
 		</transition>
 		<transition id="id67">
 			<source ref="id59"/>
@@ -1407,11 +1413,9 @@ memory[10] = 4; // 3'it byte of g_cardPin
 		</location>
 		<location id="id84" x="-1836" y="-1164">
 			<name x="-1853" y="-1148">DONE</name>
-			<committed/>
 		</location>
 		<location id="id85" x="-1121" y="-1299">
 			<name x="-1130" y="-1282">ERR</name>
-			<committed/>
 		</location>
 		<location id="id86" x="-1717" y="-1232">
 			<committed/>
@@ -1500,11 +1504,23 @@ system vm ;
 			<comment/>
 		</query>
 		<query>
+			<formula>// SMC Queries</formula>
+			<comment/>
+		</query>
+		<query>
 			<formula>Pr[&lt;=10000; 1000] (&lt;&gt; vm.DONE)</formula>
 			<comment/>
 		</query>
 		<query>
 			<formula>Pr[&lt;=10000; 1000] (&lt;&gt; vm.DONE || vm.ERR)</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>Pr[&lt;=10000; 10000] (&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_authenticated) == 170 &amp;&amp; remaining_flips &lt; MAX_FLIPS)</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>simulate[&lt;=4000; 10000] {remaining_flips, vm.DONE &amp;&amp; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_authenticated) == 170} : vm.DONE &amp;&amp; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_authenticated) == 170 &amp;&amp; remaining_flips &lt; MAX_FLIPS</formula>
 			<comment/>
 		</query>
 		<query>
@@ -1516,7 +1532,8 @@ system vm ;
 			<comment/>
 		</query>
 		<query>
-			<formula>strategy Undetected = control: A[] mem_u8(g_countermeasure) == 0 &amp;&amp; ((vm.DONE || vm.ERR) imply remaining_flips == 0)</formula>
+			<formula>strategy Undetected = control: A[] mem_u8(g_countermeasure) == 0 &amp;&amp; ((vm.DONE || vm.ERR) imply remaining_flips &lt; MAX_FLIPS)
+</formula>
 			<comment>Pure safety: "control: A[] not(lose)" &lt;=&gt; "control: A[] win"</comment>
 		</query>
 		<query>
@@ -1532,7 +1549,8 @@ system vm ;
 			<comment/>
 		</query>
 		<query>
-			<formula>strategy Access = control: A&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170</formula>
+			<formula>strategy Access = control: A&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170 &amp;&amp; remaining_flips &lt; MAX_FLIPS
+</formula>
 			<comment/>
 		</query>
 		<query>
@@ -1548,7 +1566,8 @@ system vm ;
 			<comment/>
 		</query>
 		<query>
-			<formula>strategy UndetectedAccess = control: A&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170 under Undetected</formula>
+			<formula>strategy UndetectedAccess = control: A&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_authenticated) == 170 &amp;&amp; remaining_flips &lt; MAX_FLIPS
+</formula>
 			<comment/>
 		</query>
 		<query>
