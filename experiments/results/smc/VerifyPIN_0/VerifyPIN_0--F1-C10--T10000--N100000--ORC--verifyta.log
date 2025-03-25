@@ -1,0 +1,32 @@
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742904313
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/results/smc/VerifyPIN_0/VerifyPIN_0--F1-C10--T10000--N100000--ORC--query.q:1
+ -- Formula is satisfied.
+ -- Result: (0/100000 runs) Pr(<> …) in [0,3.68881e-05] (95% CI)
+ -- States explored : 0 states
+ -- CPU user time used : 54306 ms
+ -- Virtual memory used : 57016 KiB
+ -- Resident memory used : 15848 KiB
+
+Verifying formula 2 at ./experiments/results/smc/VerifyPIN_0/VerifyPIN_0--F1-C10--T10000--N100000--ORC--query.q:2
+ -- Formula is satisfied.
+ -- Result: (85454/100000 runs) Pr(<> …) in [0.85234,0.85672] (95% CI)
+Values in [0.0050658616237342366,8773.2692684503272] mean=21.607453670748523 steps=29.942881237504114: 75610 1630 36 60 7737 378 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3
+ -- States explored : 0 states
+ -- CPU user time used : 52519 ms
+ -- Virtual memory used : 57692 KiB
+ -- Resident memory used : 16968 KiB
+
+Verifying formula 3 at ./experiments/results/smc/VerifyPIN_0/VerifyPIN_0--F1-C10--T10000--N100000--ORC--query.q:3
+ -- Formula is satisfied.
+ -- Result: (0/100000 runs) Pr(<> …) in [0,3.68881e-05] (95% CI)
+ -- States explored : 0 states
+ -- CPU user time used : 54897 ms
+ -- Virtual memory used : 57692 KiB
+ -- Resident memory used : 16968 KiB

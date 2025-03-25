@@ -403,8 +403,8 @@ bool valid_instruction() {
 
 const int32_t REGISTER_READ_TIME = 1;
 const int32_t REGISTER_WRITE_TIME = 1;
-const int32_t MEMORY_READ_TIME = 2;
-const int32_t MEMORY_WRITE_TIME = 2;
+const int32_t MEMORY_READ_TIME = 10;
+const int32_t MEMORY_WRITE_TIME = 10;
 
 int execution_time(int32_t code) {
     if (code == ADDI_CODE) {
