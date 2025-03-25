@@ -17,10 +17,6 @@ def arg_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
-        '-o', '--output', type=str, default='./',
-        help='Path to the output directory for the experiment.'
-    )
-    parser.add_argument(
         '-m', '--model', type=str,
         help='The path to the Uppaal model.'
     )
@@ -62,7 +58,7 @@ def run_verifyta(
 
 def replace_and_run(
     model: str, query: str,
-    output_directory: str, query_output: str, log_output: str,
+    query_output: str, log_output: str,
     replacements: Dict[str, str],
 ):
     shutil.copy2(query, query_output)
