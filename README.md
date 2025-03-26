@@ -24,3 +24,21 @@ Running the tests covers some of the parser and sanity checks for VerifyPIN exam
 
 ## Experiments
 VerifyTA must be a part of your PATH variable and set in the profile such that Python subprocess run can find the executable.
+To run the experiments detached with a name one can run
+```console
+./experiments/nohup_run_experiment.sh <REQUIRED:EXPERIMENT_COMMAND> <OPTIONAL:PROCESS_NAME:DEFAULT("EXPERIMENT")> <OPTIONAL:LOG_OUTPUT_PATH> <$@:ADDITIONAL_EXPERIMENT_COMMAND_ARGS>
+
+# Example (With loggin)
+./experiments/nohup_run_experiment.sh "./experiments/run_smc_experiments_LARGE_ORC.sh" "SMC_LARGE" "SMC_LARGE.out" "./experiments/results/smc"
+
+# Example (Without logging)
+./experiments/nohup_run_experiment.sh "./experiments/run_smc_experiments_LARGE_ORC.sh" "SMC_LARGE" "" "./experiments/results/smc"
+```
+
+If one wants to stop the experiment:
+````console
+./experiments/nohup_stop_experiment.sh <REQUIRED:EXPERIMENT_COMMAND>
+
+# EXAMPLE
+./experiments/nohup_stop_experiment.sh EXPERIMENT
+```
