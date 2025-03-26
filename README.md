@@ -30,6 +30,7 @@ To run the experiments detached with a name one can run
 
 # Example (With loggin)
 ./experiments/nohup_run_experiment.sh "./experiments/run_smc_experiments_LARGE_ORC.sh" "SMC_LARGE" "SMC_LARGE.out" "./experiments/results/smc"
+./experiments/nohup_run_experiment.sh "./experiments/run_symbolic_experiments.sh" "SYMBOLIC_EXPERIMENTS" "SYMBOLIC.out" "./experiments/results/symbolic"
 
 # Example (Without logging)
 ./experiments/nohup_run_experiment.sh "./experiments/run_smc_experiments_LARGE_ORC.sh" "SMC_LARGE" "" "./experiments/results/smc"
