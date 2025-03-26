@@ -1,0 +1,34 @@
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742929955
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/results/smc/VerifyPIN_2_HB+FTL/VerifyPIN_2_HB+FTL--F3--C10--T10000--N100000--ORC--query.q:1
+ -- Formula is satisfied.
+ -- Result: (7691/100000 runs) Pr(<> …) in [0.0752659,0.0785787] (95% CI)
+Values in [80,1085] mean=203.01274216616824 steps=11.420454545454545: 6411 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 26 0 43 1209 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 1
+ -- States explored : 0 states
+ -- CPU user time used : 6217 ms
+ -- Virtual memory used : 57244 KiB
+ -- Resident memory used : 16004 KiB
+
+Verifying formula 2 at ./experiments/results/smc/VerifyPIN_2_HB+FTL/VerifyPIN_2_HB+FTL--F3--C10--T10000--N100000--ORC--query.q:2
+ -- Formula is satisfied.
+ -- Result: (92356/100000 runs) Pr(<> …) in [0.921896,0.925199] (95% CI)
+Values in [0.0027413815259933476,7986.7123974319547] mean=16.537285053970802 steps=26.272071237007996: 77698 4188 10163 45 5 0 2 166 82 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 6 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+ -- States explored : 0 states
+ -- CPU user time used : 6242 ms
+ -- Virtual memory used : 57968 KiB
+ -- Resident memory used : 18680 KiB
+
+Verifying formula 3 at ./experiments/results/smc/VerifyPIN_2_HB+FTL/VerifyPIN_2_HB+FTL--F3--C10--T10000--N100000--ORC--query.q:3
+ -- Formula is satisfied.
+ -- Result: (27/100000 runs) Pr(<> …) in [0.000177939,0.000392812] (95% CI)
+Values in [786,786] mean=786 steps=2.2204460492503131e-16: 27
+ -- States explored : 0 states
+ -- CPU user time used : 6427 ms
+ -- Virtual memory used : 57968 KiB
+ -- Resident memory used : 18680 KiB

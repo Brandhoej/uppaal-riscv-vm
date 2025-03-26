@@ -1,0 +1,32 @@
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742930076
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/results/smc/VerifyPIN_0/VerifyPIN_0--F3-C10--T10000--N100000--IS--query.q:1
+ -- Formula is satisfied.
+ -- Result: (0/100000 runs) Pr(<> …) in [0,3.68881e-05] (95% CI)
+ -- States explored : 0 states
+ -- CPU user time used : 150698 ms
+ -- Virtual memory used : 56692 KiB
+ -- Resident memory used : 17460 KiB
+
+Verifying formula 2 at ./experiments/results/smc/VerifyPIN_0/VerifyPIN_0--F3-C10--T10000--N100000--IS--query.q:2
+ -- Formula is satisfied.
+ -- Result: (53936/100000 runs) Pr(<> …) in [0.536265,0.542453] (95% CI)
+Values in [0.0008178669959306718,263.25118061993271] mean=18.545193671452097 steps=1.1298298830598148: 2312 2352 2294 2383 2360 2292 2318 2407 2337 2246 1427 0 1103 1718 1768 1710 1746 1758 1711 1777 1714 1753 1738 927 921 838 942 864 904 888 881 909 891 572 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 8 8 10 6 7 2 8 12 18 14 8 6 9 10 3 4 9 2 7 3 4 140 128 1 4 3 3 1 60 84 108 67 12 9 0 1 6 16 11 15 6 5 0 1 0 0 1 1 2 1 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 45 81 14 0 0 0 0 17 40 43 57 3 0 0 0 0 5 10 9 4 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1
+ -- States explored : 0 states
+ -- CPU user time used : 151479 ms
+ -- Virtual memory used : 57716 KiB
+ -- Resident memory used : 18652 KiB
+
+Verifying formula 3 at ./experiments/results/smc/VerifyPIN_0/VerifyPIN_0--F3-C10--T10000--N100000--IS--query.q:3
+ -- Formula is satisfied.
+ -- Result: (0/100000 runs) Pr(<> …) in [0,3.68881e-05] (95% CI)
+ -- States explored : 0 states
+ -- CPU user time used : 156988 ms
+ -- Virtual memory used : 57716 KiB
+ -- Resident memory used : 18652 KiB

@@ -1,0 +1,33 @@
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742938695
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/results/smc/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC--F4--C10--T10000--N100000--IS--query.q:1
+ -- Formula is satisfied.
+ -- Result: (46926/100000 runs) Pr(<> …) in [0.466163,0.472359] (95% CI)
+Values in [56,1158] mean=1102.4685462217108 steps=5.0783410138248852: 469 209 277 0 68 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 36 55 1040 708 2919 2148 1084 241 59 3 7 1247 639 7122 2409 13187 2441 9364 747 447 0
+ -- States explored : 0 states
+ -- CPU user time used : 23862 ms
+ -- Virtual memory used : 58348 KiB
+ -- Resident memory used : 17632 KiB
+
+Verifying formula 2 at ./experiments/results/smc/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC--F4--C10--T10000--N100000--IS--query.q:2
+ -- Formula is satisfied.
+ -- Result: (53431/100000 runs) Pr(<> …) in [0.531212,0.537406] (95% CI)
+Values in [1.8440186977386477e-07,122.78069009212777] mean=15.596611653722048 steps=0.52922711167123249: 1139 1069 1149 1125 1076 1121 1084 1123 1094 1126 1118 1084 1092 1125 1117 1089 1126 1077 1131 1195 1073 1120 670 0 0 0 435 881 790 867 827 863 832 880 831 818 854 829 875 843 816 827 742 800 819 823 832 821 840 452 385 402 428 417 418 419 426 415 392 428 394 409 412 393 441 428 464 395 417 436 403 341 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 3 1 1 0 0 0 0 0 0 0 0 0 3 1 0 3 2 2 1 5 2 5 1 2 1 0 0 0 0 0 0 0 2 2 0 1 0 1 2 1 2 0 0 0 0 1 1 1 0 0 0 0 0 0 0 0 1
+ -- States explored : 0 states
+ -- CPU user time used : 23599 ms
+ -- Virtual memory used : 58724 KiB
+ -- Resident memory used : 18192 KiB
+
+Verifying formula 3 at ./experiments/results/smc/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC/VerifyPIN_7_HB+FTL+INL+DPTC+DT+SC--F4--C10--T10000--N100000--IS--query.q:3
+ -- Formula is satisfied.
+ -- Result: (0/100000 runs) Pr(<> …) in [0,3.68881e-05] (95% CI)
+ -- States explored : 0 states
+ -- CPU user time used : 25104 ms
+ -- Virtual memory used : 58724 KiB
+ -- Resident memory used : 18192 KiB

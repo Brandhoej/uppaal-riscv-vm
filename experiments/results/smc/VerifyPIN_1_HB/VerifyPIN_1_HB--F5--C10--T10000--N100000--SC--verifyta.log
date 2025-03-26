@@ -1,0 +1,32 @@
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742947940
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/results/smc/VerifyPIN_1_HB/VerifyPIN_1_HB--F5--C10--T10000--N100000--SC--query.q:1
+ -- Formula is satisfied.
+ -- Result: (0/100000 runs) Pr(<> …) in [0,3.68881e-05] (95% CI)
+ -- States explored : 0 states
+ -- CPU user time used : 685262 ms
+ -- Virtual memory used : 56916 KiB
+ -- Resident memory used : 16972 KiB
+
+Verifying formula 2 at ./experiments/results/smc/VerifyPIN_1_HB/VerifyPIN_1_HB--F5--C10--T10000--N100000--SC--query.q:2
+ -- Formula is satisfied.
+ -- Result: (22559/100000 runs) Pr(<> …) in [0.223002,0.228193] (95% CI)
+Values in [128.00013983668759,381.88058501388878] mean=130.87473459408838 steps=1.6813274515046441: 15564 3217 393 461 470 471 502 456 232 127 114 96 90 88 91 119 49 1 0 0 0 2 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 0 0 0 1 0 0 1 0 0 0 1 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 0 3
+ -- States explored : 0 states
+ -- CPU user time used : 683741 ms
+ -- Virtual memory used : 57424 KiB
+ -- Resident memory used : 17528 KiB
+
+Verifying formula 3 at ./experiments/results/smc/VerifyPIN_1_HB/VerifyPIN_1_HB--F5--C10--T10000--N100000--SC--query.q:3
+ -- Formula is satisfied.
+ -- Result: (0/100000 runs) Pr(<> …) in [0,3.68881e-05] (95% CI)
+ -- States explored : 0 states
+ -- CPU user time used : 697639 ms
+ -- Virtual memory used : 57424 KiB
+ -- Resident memory used : 17528 KiB

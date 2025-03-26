@@ -1,0 +1,32 @@
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742922582
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/results/smc/VerifyPIN_1_HB/VerifyPIN_1_HB--F2--C10--T10000--N100000--IS--query.q:1
+ -- Formula is satisfied.
+ -- Result: (0/100000 runs) Pr(<> …) in [0,3.68881e-05] (95% CI)
+ -- States explored : 0 states
+ -- CPU user time used : 153673 ms
+ -- Virtual memory used : 56740 KiB
+ -- Resident memory used : 15996 KiB
+
+Verifying formula 2 at ./experiments/results/smc/VerifyPIN_1_HB/VerifyPIN_1_HB--F2--C10--T10000--N100000--IS--query.q:2
+ -- Formula is satisfied.
+ -- Result: (53536/100000 runs) Pr(<> …) in [0.532263,0.538455] (95% CI)
+Values in [0.0001113535836338997,212.5600311877206] mean=15.7162949934143 steps=0.91620655100921122: 1982 1920 1886 1904 1862 1838 1928 1994 2035 1957 1905 1896 1964 161 0 1087 1340 1464 1414 1370 1424 1509 1483 1421 1428 1516 1388 1464 914 656 740 719 764 697 755 650 726 781 743 736 707 340 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 1 0 1 2 1 0 1 1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 14 12 0 0 0 0 0 0 0 2 2 0 4 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 6 9 3 0 0 0 0 0 0 0 2 4
+ -- States explored : 0 states
+ -- CPU user time used : 152422 ms
+ -- Virtual memory used : 57764 KiB
+ -- Resident memory used : 16968 KiB
+
+Verifying formula 3 at ./experiments/results/smc/VerifyPIN_1_HB/VerifyPIN_1_HB--F2--C10--T10000--N100000--IS--query.q:3
+ -- Formula is satisfied.
+ -- Result: (0/100000 runs) Pr(<> …) in [0,3.68881e-05] (95% CI)
+ -- States explored : 0 states
+ -- CPU user time used : 161349 ms
+ -- Virtual memory used : 57764 KiB
+ -- Resident memory used : 16968 KiB
