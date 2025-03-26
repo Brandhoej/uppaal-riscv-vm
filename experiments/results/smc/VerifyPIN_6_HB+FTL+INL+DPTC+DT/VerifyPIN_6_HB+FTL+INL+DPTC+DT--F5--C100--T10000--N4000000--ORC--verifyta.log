@@ -7,3 +7,10 @@ Options for the verification:
   Using HashMap + Compress integers for discrete state storage
 
 Verifying formula 1 at ./experiments/results/smc/VerifyPIN_6_HB+FTL+INL+DPTC+DT/VerifyPIN_6_HB+FTL+INL+DPTC+DT--F5--C100--T10000--N4000000--ORC--query.q:1
+ -- Formula is satisfied.
+ -- Result: (1/4000000 runs) Pr(<> …) in [6.32945e-09,1.39291e-06] (95% CI)
+Values in [675,675] mean=675 steps=2.2204460492503131e-16: 1
+ -- States explored : 0 states
+ -- CPU user time used : 1351499 ms
+ -- Virtual memory used : 57084 KiB
+ -- Resident memory used : 16732 KiB
