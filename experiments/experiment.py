@@ -1,3 +1,4 @@
+import os
 import subprocess
 import shutil
 import fileinput
@@ -45,16 +46,16 @@ def run_verifyta(
     verifyta: str = 'verifyta',
     stdout: Any = None
 ) -> int:
-    arguments = [
+    command = [
         verifyta, model_path, query_path,
-        '--silence-progress', '--summary',   
+        '--silence-progress', '--summary',
     ]
 
     if isinstance(stdout, str):
         with open(stdout, 'w') as file:
-            return subprocess.call(arguments, stdout=file)
+            return subprocess.run(command, stdout=file).returncode
 
-    return subprocess.call(arguments, stdout=stdout)
+    return subprocess.run(command, stdout=stdout).returncode
 
 def replace_and_run(
     model: str, query: str,

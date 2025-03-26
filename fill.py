@@ -32,7 +32,7 @@ class RISCVProgram:
     __programs: List[Tuple[str, List[Tuple[str, str, str, str]]]]
     """
     Ie. [(label, [(code, op1, op2, op3)])]
-    
+
     Example:
     program = [
         ('verifyPIN', [
@@ -40,7 +40,7 @@ class RISCVProgram:
             ('ADDI_CODE', 'sp', 'sp', '-32')
         ])
     ]
-    
+
     """
 
     __assertions: List[Tuple[int, int, str]] = []
@@ -85,7 +85,7 @@ class RISCVProgram:
     @property
     def programs(self) -> List[Tuple[str, List[Tuple[str, str, str, str]]]]:
         return self.__programs
-    
+
     @property
     def labels(self) -> List[Tuple[str, int]]:
         labels = []
@@ -133,7 +133,7 @@ class RISCVProgram:
             globals.append(f'const address_t {symbol} = {offset};')
             offset += RISCVProgram.symbol_size(lines)
         return '\n'.join(globals)
-    
+
     def generated_memory_length(self, memory: int) -> str:
         # /* GENERATED: MEMORY_LENGTH */
         # Example: "const int32_t MEMORY_LENGTH = 64;"
@@ -240,10 +240,10 @@ class RISCVProgram:
         content = content.replace('/* GENERATED: INITIAL_PC */', self.generated_initial_pc(initial_pc))
         content = content.replace('/* GENERATED: COOLDOWN */', self.generated_cooldown(cooldown))
         content = content.replace('/* GENERATED: FAULT_MODELS */', self.generated_fault_models(fault_models))
-        
+
         with open(template, 'w') as file:
             file.write(content)
-    
+
     @staticmethod
     def is_instruction(line: str) -> bool:
         # For now I believe it is sufficient to check if it starts with a '.' or not.
@@ -308,7 +308,7 @@ class RISCVProgram:
             if RISCVProgram.is_instruction(lines[0]):
                 first_program = index
                 break
-        
+
         # Third we parse the global symbols.
         symbols: List[Tuple[str, List[str]]] = []
         for index in range(first_program):
@@ -411,7 +411,7 @@ class RISCVProgram:
         # Instructions like "nop":
         if len(split) == 1:
             return (opcode_map[split[0]], '', '', '')
-        
+
         if len(split) != 2:
             v_print(f'Unknown instruction layout: "{line}".')
             raise SystemExit
@@ -469,7 +469,7 @@ class RISCVProgram:
                         raise SystemExit
 
                     segment_index = len(segments) - 1
-                    
+
                     split = line.split(';')
                     if len(split) == 2:
                         (instruction, assertion) = (split[0].strip(), split[1].strip())
@@ -485,7 +485,7 @@ def main():
         description="This script processes a RISC-V assembly file and generates an Uppaal model.",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    
+
     parser.add_argument(
         "file", type=str,
         help="Path to the RISC-V assembly file. This file will be processed by the script."
@@ -537,7 +537,7 @@ def main():
         choices=fault_model_descriptions.keys(),
         help=fault_model_help_text,
     )
-    
+
     args = parser.parse_args()
 
     # For now the verbose printing flag is globally set.

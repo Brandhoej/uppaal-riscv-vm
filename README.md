@@ -21,3 +21,6 @@ Running the tests covers some of the parser and sanity checks for VerifyPIN exam
 ```console
 ./test_linux.sh
 ```
+
+## Experiments
+VerifyTA must be a part of your PATH variable and set in the profile such that Python subprocess run can find the executable.

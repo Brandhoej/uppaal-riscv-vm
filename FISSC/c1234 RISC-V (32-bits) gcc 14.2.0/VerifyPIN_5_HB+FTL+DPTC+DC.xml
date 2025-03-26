@@ -746,7 +746,7 @@ remaining_flips--</label>
 			<committed/>
 		</location>
 		<location id="id46" x="-960" y="-833">
-			<label kind="invariant" x="-977" y="-824">1</label>
+			<label kind="exponentialrate" x="-977" y="-824">1</label>
 		</location>
 		<location id="id47" x="-1079" y="-833">
 		</location>

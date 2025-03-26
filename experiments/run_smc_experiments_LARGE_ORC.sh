@@ -1,16 +1,16 @@
-# Example: ./experiments/run_smc_experiments.sh "./experiments/results/smc"
+# Example: ./experiments/run_smc_experiments_LARGE_ORD.sh "./experiments/results/smc"
 
 #!/bin/bash
 set -e
 
 OUTPUT_DIR=$1
 TIME=10000
-SIMULATIONS=100000
+SIMULATIONS=4000000
 COOLDOWN=100
 MEMORY=64
 
 for FLIPS in 1 2 3 4 5; do
-    for FAULT_MODEL in "ORC" "IS" "SC"; do
+    for FAULT_MODEL in "ORC"; do
         BASE_DIRECTORY="$OUTPUT_DIR/VerifyPIN_0"
         QUERY_OUTPUT="$BASE_DIRECTORY/VerifyPIN_0--F$FLIPS-C$COOLDOWN--T$TIME--N$SIMULATIONS--$FAULT_MODEL--query.q"
         LOG_OUTPUT="$BASE_DIRECTORY/VerifyPIN_0--F$FLIPS-C$COOLDOWN--T$TIME--N$SIMULATIONS--$FAULT_MODEL--verifyta.log"
