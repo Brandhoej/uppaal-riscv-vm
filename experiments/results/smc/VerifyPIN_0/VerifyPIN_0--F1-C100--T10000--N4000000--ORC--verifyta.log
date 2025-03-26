@@ -2,14 +2,15 @@ Options for the verification:
   Generating no trace
   Search order is breadth first
   Using conservative space optimisation
-  Seed is 1742989862
+  Seed is 1742990887
   State space representation uses minimal constraint systems with future testing
   Using HashMap + Compress integers for discrete state storage
 
 Verifying formula 1 at ./experiments/results/smc/VerifyPIN_0/VerifyPIN_0--F1-C100--T10000--N4000000--ORC--query.q:1
- -- Formula is NOT satisfied.
- -- Result: (9/147150 runs) 
+ -- Formula is satisfied.
+ -- Result: (152/4000000 runs) Pr(<> …) in [3.21992e-05,4.45439e-05] (95% CI)
+Values in [271,714] mean=297.23026315789474 steps=34.07692307692308: 143 0 0 0 0 0 0 0 0 0 0 0 9 0
  -- States explored : 0 states
- -- CPU user time used : 9886 ms
- -- Virtual memory used : 56932 KiB
- -- Resident memory used : 16464 KiB
+ -- CPU user time used : 262148 ms
+ -- Virtual memory used : 56936 KiB
+ -- Resident memory used : 16336 KiB

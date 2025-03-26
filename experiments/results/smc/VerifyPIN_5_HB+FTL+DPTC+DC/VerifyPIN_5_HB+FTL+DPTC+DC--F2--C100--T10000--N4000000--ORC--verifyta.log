@@ -1,0 +1,16 @@
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1742998257
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/results/smc/VerifyPIN_5_HB+FTL+DPTC+DC/VerifyPIN_5_HB+FTL+DPTC+DC--F2--C100--T10000--N4000000--ORC--query.q:1
+ -- Formula is satisfied.
+ -- Result: (410/4000000 runs) Pr(<> …) in [9.28177e-05,0.000112918] (95% CI)
+Values in [434,1272] mean=879.60243902439026 steps=39.904761904761905: 151 0 0 0 0 0 0 0 0 0 0 0 0 122 0 0 0 0 0 0 13 124
+ -- States explored : 0 states
+ -- CPU user time used : 1010750 ms
+ -- Virtual memory used : 57404 KiB
+ -- Resident memory used : 17296 KiB
