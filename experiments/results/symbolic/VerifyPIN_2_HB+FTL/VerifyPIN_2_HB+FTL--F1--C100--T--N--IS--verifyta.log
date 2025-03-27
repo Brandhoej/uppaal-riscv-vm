@@ -1,0 +1,22 @@
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1743028787
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/results/symbolic/VerifyPIN_2_HB+FTL/VerifyPIN_2_HB+FTL--F1--C100--T--N--IS--query.q:1
+ -- Formula is satisfied.
+ -- States explored : 0 states
+ -- CPU user time used : 47 ms
+ -- Virtual memory used : 62004 KiB
+ -- Resident memory used : 19236 KiB
+
+Verifying formula 2 at ./experiments/results/symbolic/VerifyPIN_2_HB+FTL/VerifyPIN_2_HB+FTL--F1--C100--T--N--IS--query.q:2
+ -- Formula is satisfied.
+ -- States stored : 1764 states
+ -- States explored : 1784 states
+ -- CPU user time used : 11 ms
+ -- Virtual memory used : 66884 KiB
+ -- Resident memory used : 23076 KiB

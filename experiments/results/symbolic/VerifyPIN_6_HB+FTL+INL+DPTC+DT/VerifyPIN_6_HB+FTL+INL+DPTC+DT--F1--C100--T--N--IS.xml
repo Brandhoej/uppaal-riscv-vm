@@ -1,0 +1,1671 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.6//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_6.dtd'>
+<nta>
+	<declaration>/* error detection */
+int8_t some_array[1] = { 0 };
+void panic() { some_array[2] = 1; }
+void todo() { panic(); }
+
+/* Potential known problems:
+ * 1. "add" and "addi" (most likely more) allows overflow
+ *        which we currently do not. This may cause some issues in the future.
+ * 2. All operations are implemented with signed extensions which may cause
+ *        unintential side-effects when unsigned arithmetic should be used
+ */
+
+/* Values for attacker */
+const int32_t MAX_FLIPS = 1;
+int remaining_flips = MAX_FLIPS;
+
+/* To keep track of the number of executed instructions */
+bool ready = true;
+int32_t executed_instructions = 0;
+
+/* VM Synchronisation */
+broadcast chan started;
+broadcast chan fetched;
+broadcast chan executed;
+broadcast chan failed;
+broadcast chan finished;
+
+/* Attacker Synchronisation */
+broadcast chan attack;
+
+// Data filled in but auto-generator:
+typedef struct {
+    int32_t code;
+    // Mostly always the "rd" register.
+    int32_t op1;
+    int32_t op2;
+    // Mostly always an offset.
+    int32_t op3;
+} instruction_t;
+
+// The memory available to the program.
+// Data: This includes global variables and static variables. 
+// Heap: The heap grows upward (toward higher memory addresses) as dynamic
+//    memory allocations (e.g., malloc in C) occur.
+//     The heap starts right after the global/static data section.
+// Stack: The stack grows downward (toward lower memory addresses). It is typically placed at the
+//    top of the memory space and moves down as functions call and allocate local variables.
+// Ergo. the stack starts at the greatest index. The data starts at
+//    the smallest index. The heap starts right after the data.
+
+const int32_t MEMORY_LENGTH = 64;
+typedef int[0, MEMORY_LENGTH - 1] address_t;
+uint8_t memory[MEMORY_LENGTH];
+
+// Reads a uint8_t from memory starting at "address".
+uint8_t r_mem_u8(address_t address) {
+    return memory[address];
+}
+uint8_t mem_u8(address_t address) { return r_mem_u8(address); }
+
+// Reads a uint16_t from memory starting at "address".
+uint16_t r_mem_u16(address_t address) {
+    return (memory[address + 1] &lt;&lt; 0) |
+           (memory[address + 0] &lt;&lt; 8);
+}
+uint16_t mem_u16(address_t address) { return r_mem_u16(address); }
+
+// Reads a int8_t from memory starting at "address".
+int8_t r_mem_i8(address_t address) {
+    uint8_t value = memory[address];
+    return value &gt; 127 ? value - 256 : value;
+}
+int8_t mem_i8(address_t address) { return r_mem_i8(address); }
+
+// Reads a int16_t from memory starting at "address".
+int16_t r_mem_i16(address_t address) {
+    uint16_t mem = r_mem_u16(address);
+    return mem &gt; INT16_MAX ? mem - UINT16_MAX - 1 : mem;
+}
+int16_t mem_i16(address_t address) { return r_mem_i16(address); }
+
+// Reads a int32_t from memory starting at "address".
+int32_t r_mem_i32(address_t address) {
+    uint16_t high = r_mem_u16(address);
+    uint16_t low = r_mem_u16(address + 2);
+    if (high &lt; INT16_MAX + 1) {
+        return high * (UINT16_MAX + 1) + low;
+    } else {
+        return (high - (UINT16_MAX + 1)) * (UINT16_MAX + 1) + low;
+    }
+}
+int32_t mem_i32(address_t address) { return r_mem_i32(address); }
+
+// Writes an int8_t to memory starting at "address".
+void w_mem_i8(address_t address, int32_t value) {
+    memory[address] = value &amp; 255;
+}
+
+// Writes an int16_t to memory starting at "address".
+void w_mem_i16(address_t address, int32_t value) {
+    memory[address + 0] = (value &gt;&gt; 8) &amp; 255;
+    memory[address + 1] = (value &gt;&gt; 0) &amp; 255;
+}
+
+// Writes an int32_t to memory starting at "address".
+void w_mem_i32(address_t address, int32_t value) {
+    memory[address + 0] = (value &gt;&gt; 24)  &amp; 255;
+    memory[address + 1] = (value &gt;&gt; 16)  &amp; 255;
+    memory[address + 2] = (value &gt;&gt; 8) &amp; 255;
+    memory[address + 3] = (value &gt;&gt; 0) &amp; 255;
+}
+
+const int32_t PROGRAM_LENGTH = 89;
+
+instruction_t program[PROGRAM_LENGTH];
+
+// The program counter (PC) to keep track of which instruction to execute.
+// We allow the pc_t to exceed the PROGRAM_LENGTH by one to check when we are done.
+typedef int[0, PROGRAM_LENGTH] pc_t;
+pc_t pc = 0;
+
+const pc_t verifyPIN = 0;
+const pc_t L5 = 25;
+const pc_t L4 = 38;
+const pc_t L3 = 41;
+const pc_t L6 = 51;
+const pc_t L8 = 60;
+const pc_t L7 = 64;
+const pc_t L9 = 66;
+const pc_t L10 = 80;
+const pc_t L2 = 84;
+const pc_t L11 = 85;
+const int32_t GLOBAL_SYMBOLS_SIZE = 11;
+const address_t g_countermeasure = 0;
+const address_t g_ptc = 1;
+const address_t g_authenticated = 2;
+const address_t g_userPin = 3;
+const address_t g_cardPin = 7;
+
+/* Documentation */
+// https://gse.ufsc.br/bezerra/wp-content/uploads/2022/04/Lecture7.pdf
+// https://www.cs.sfu.ca/~ashriram/Courses/CS295/assets/notebooks/RISCV/RISCV_CARD.pdf
+typedef int[0, 21] opcode_t;
+const opcode_t ADDI_CODE = 0;
+const opcode_t   SW_CODE = 1;
+const opcode_t   LW_CODE = 2;
+const opcode_t  LUI_CODE = 3;
+const opcode_t   SB_CODE = 4;
+const opcode_t    J_CODE = 5;  // Pseudo-instruction. We assume that it is always to a lable (op3).
+const opcode_t   LI_CODE = 6;  // Pseudo-instruction.
+const opcode_t   LB_CODE = 7;
+const opcode_t  BLE_CODE = 8;  // Pseudo-instruction. We assume that it is always to a lable (op3).
+const opcode_t  BEQ_CODE = 9;  // We assume that it is always to a lable (op3).
+const opcode_t  NOP_CODE = 10;
+const opcode_t ANDI_CODE = 11;
+const opcode_t SLLI_CODE = 12;
+const opcode_t SRAI_CODE = 13;
+const opcode_t  ADD_CODE = 14;
+const opcode_t  LBU_CODE = 15;
+const opcode_t  BNE_CODE = 16;
+const opcode_t   MV_CODE = 17; // Pseudo-instruction.
+const opcode_t   JR_CODE = 18; // Pseudo-instruction.
+const opcode_t SEQZ_CODE = 19; // Pseudo-instruction.
+const opcode_t  BLT_CODE = 20; // We assume that it is always to a lable (op3).
+const opcode_t CALL_CODE = 21; // Pseduo-instruction.
+
+/* CPU Registers "https://msyksphinz-self.github.io/riscv-isadoc/html/regs.html" */
+typedef int[0, 31] register_t;
+const register_t zero = 0;
+const register_t ra = 1;
+const register_t sp = 2;
+const register_t gp = 3;
+const register_t tp = 4;
+const register_t t0 = 5;
+const register_t t1 = 6;
+const register_t t2 = 7;
+const register_t s0 = 8;
+const register_t s1 = 9;
+const register_t a0 = 10;
+const register_t a1 = 11;
+const register_t a2 = 12;
+const register_t a3 = 13;
+const register_t a4 = 14;
+const register_t a5 = 15;
+const register_t a6 = 16;
+const register_t a7 = 17;
+const register_t s2 = 18;
+const register_t s3 = 19;
+const register_t s4 = 20;
+const register_t s5 = 21;
+const register_t s6 = 22;
+const register_t s7 = 23;
+const register_t s8 = 24;
+const register_t s9 = 25;
+const register_t s10 = 26;
+const register_t s11 = 27;
+const register_t t3 = 28;
+const register_t t4 = 29;
+const register_t t5 = 30;
+const register_t t6 = 31;
+int32_t registers[32];
+
+int32_t symbol_low(int32_t symbol) {
+    return symbol &amp; 4095; // The low 12 bits of the symbol.
+}
+
+int32_t symbol_high(int32_t symbol) {
+    return symbol &amp; -4096; // The high 20 bits of the symbol.
+}
+
+instruction_t instruction;
+
+void fetch() {
+    instruction = program[pc];
+}
+
+void execute() {
+    pc += 1;
+
+    if (instruction.code == ADDI_CODE) {
+        // Implementation: reg[op1] = reg[op2] + op3
+        // Example: "addi a5,a4,1" op1=a5 op2=a4 op3=1
+        // Example: "{ ADDI_CODE, a5, a5, -1 }"
+        registers[instruction.op1] = registers[instruction.op2] + instruction.op3;
+    } else if (instruction.code == SW_CODE) {
+        // Implementation: mem[reg[op2] + op3] = reg[op1]
+        // Example: "sw a5,-20(s0)" op1=a5 op2=s0 op3=-20
+        // Example: "{ SW_CODE, a5, s0, -24 }"
+        w_mem_i32(registers[instruction.op2] + instruction.op3, registers[instruction.op1]);
+    } else if (instruction.code == LW_CODE) {
+        // Implementation: reg[op1] = mem[reg[op2] + op3]
+        // Example: "lw a5,-24(s0)" op1=a5 op2=s0 op3=-24
+        // Example: "{ LW_CODE, a5, s0, -32 }"
+        registers[instruction.op1] = r_mem_i32(registers[instruction.op2] + instruction.op3);
+    } else if (instruction.code == LUI_CODE) {
+        // Implementation: reg[op1] = op2
+        // Example: "lui a5,%hi(g_ptc)" op1=a5 op2=symbol_high(g_ptc)
+        // Example: "{ LUI_CODE, a5, symbol_high(g_cardPin), 0 }"
+        registers[instruction.op1] = instruction.op2;
+    } else if (instruction.code == SB_CODE) {
+        // Implementation: mem[reg[op2] + op3] = reg[op1][7:0]
+        // Example: "a4,%lo(g_ptc)(a5)" op1=a4 op2=a5 op3=symbol_low(g_ptc)
+        // Example: "{ SB_CODE, a5, s0, -25 }"
+        w_mem_i8(registers[instruction.op2] + instruction.op3, registers[instruction.op1] &amp; 255);
+    } else if (instruction.code == J_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: pc = lab[op1]
+        // Example: "j .L6" op1=L6
+        // Example: " { J_CODE, L3, 0, 0 }"
+        // We assume that the labels point directly to the pc to jump to.
+        pc = instruction.op1;
+    } else if (instruction.code == LI_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: reg[op1] = op2
+        // Example: "li a5,85" op1=a5 op2=85
+        // Example: "{ LI_CODE, a5, 4, 0 }"
+        registers[instruction.op1] = instruction.op2;
+    } else if (instruction.code == LB_CODE) {
+        // Implementation: reg[op1] = mem[reg[op2] + op3]
+        // Example: "a5,%lo(g_ptc)(a5)" op1=a5 op2=a5 op3=symbol_low(g_ptc)
+        // Example: "{ LB_CODE, a5, a5, symbol_low(g_ptc) }"
+        registers[instruction.op1] = r_mem_i8(registers[instruction.op2] + instruction.op3);
+    } else if (instruction.code == BLE_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: if reg[op1] &lt;= reg[op2] then pc = lab[op3]
+        // Example: "ble a4,a5,.L9" op1=a4 op2=a5 op3=L9
+        // Example: "{ BLE_CODE, a5, zero, L2 }"
+        if (registers[instruction.op1] &lt;= registers[instruction.op2]) {
+            // We assume that the labels point directly to the pc to jump to.
+            pc = instruction.op3;
+        }
+    } else if (instruction.code == BEQ_CODE) {
+        // Implementation: if reg[op1] = reg[op2] then pc = lab[op3]
+        // Example: "beq a4,a5,.L3" op1=a4 op2=a5 op3=L3
+        // Example: "{ BEQ_CODE, a4, a5, L4 }"
+        if (registers[instruction.op1] == registers[instruction.op2]) {
+            // We assume that the labels point directly to the pc to jump to.
+            pc = instruction.op3;
+        }
+    } else if (instruction.code == NOP_CODE) {
+        // Implementation: zzzZZZ
+        // Example: "nop"
+    } else if (instruction.code == ANDI_CODE) {
+        // Implementation: reg[op1] = reg[op2] &amp; op3
+        // Example: "andi a5,a3,0xff" op1=a5 op2=a3 op3=0xff
+        // Example: "{ ANDI_CODE, a5, a5, 255 }"
+        registers[instruction.op1] = registers[instruction.op2] &amp; instruction.op3;
+    } else if (instruction.code == SLLI_CODE) {
+        // Implementation: reg[op1] = reg[op2] &lt;&lt; op3
+        // Example: "slli a4,a5,24" op1=a4 op2=a5 op3=24
+        // Example: "{ SLLI_CODE, a4, a5, 24 }"
+        registers[instruction.op1] = registers[instruction.op2] &lt;&lt; instruction.op3;
+    } else if (instruction.code == SRAI_CODE) {
+        // Implementation: reg[op1] = reg[op2] &gt;&gt; op3
+        // Example: "srai a4,a2,24" op1=a4 op2=a2 op3=24
+        // Example: "{ SRAI_CODE, a4, a4, 24 }"
+        registers[instruction.op1] = registers[instruction.op2] &gt;&gt; instruction.op3;
+    } else if (instruction.code == ADD_CODE) {
+        // Implementation: reg[op1] = reg[op2] + reg[op3]
+        // Example: "add a5,a4,a5" op1=a5 op2=a4 op3=a5
+        // Example: "{ ADD_CODE, a5, a4, a5 }"
+        registers[instruction.op1] = registers[instruction.op2] + registers[instruction.op3];
+    } else if (instruction.code == LBU_CODE) {
+        // Implementation: reg[op1] = mem[reg[op2] + op3][7:0]
+        // Example: "lbu a4,-26(s0)" op1=a4 op2=s0 op3=-26
+        // Example: "{ LBU_CODE, a5, s0, -25 }"
+        registers[instruction.op1] = r_mem_u8(registers[instruction.op2] + instruction.op3);
+    } else if (instruction.code == BNE_CODE) {
+        // Implementation: if reg[op1] != reg[op2] then pc = lab[op3]
+        // Example: "bne a4,a5,.L18" op1=14 op2=a5 op3=L18
+        // Example: "{ BNE_CODE, a5, a4, L7 }"
+        if (registers[instruction.op1] != registers[instruction.op2]) {
+            // We assume that the labels point directly to the pc to jump to.
+            pc = instruction.op3;
+        }
+    } else if (instruction.code == MV_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: reg[op1] = reg[op2]
+        // Example: "mv a0,a5" op1=a0 op2=a5
+        // Example: "{ MV_CODE, a0, a5, 0 }"
+        registers[instruction.op1] = registers[instruction.op2];
+    } else if (instruction.code == JR_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: pc = reg[op1]
+        // Example: "jr ra" op1=ra
+        pc = registers[instruction.op1];
+    } else if (instruction.code == SEQZ_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: if reg[op2] == 0 then reg[op1] = 1 else reg[op1] = 0
+        // Example: "seqz a5,a4" op1=a5 op2=a4
+        if (registers[instruction.op2] == 0) {
+            registers[instruction.op1] = 1;
+        } else {
+            registers[instruction.op1] = 0;
+        }
+    } else if (instruction.code == BLT_CODE) {
+        // Implementation: if reg[op1] &lt; reg[op2] then pc = lab[op3]
+        // Example: "blt a4,a5,.L5" op1=a4 op2=a5 op3=L5
+        if (registers[instruction.op1] &lt; registers[instruction.op2]) {
+            // We assume that the labels point directly to the pc to jump to.
+            pc = instruction.op3;
+        }
+    } else if (instruction.code == CALL_CODE) {
+        // Note: This is a pseudo-instruction. Implementaiton based on JAL.
+        // Implementaion (~JAL): reg[ra] = pc; pc = LAB[op1]
+        // PC is incremented to the next instruction when entering this function.
+        //     Therefoew, we dont increase the PC when assigning ra to it.
+        registers[ra] = pc;
+        pc = instruction.op1;
+    } else {
+        panic(); // Unknown instruction type.
+    }
+
+    executed_instructions++;
+}
+
+bool valid_instruction() {
+    if (instruction.code == JR_CODE) {
+        // Implementation: pc = reg[op1]
+        int32_t new_pc = registers[instruction.op1];
+        return (new_pc &gt;= 0 &amp;&amp; new_pc &lt; PROGRAM_LENGTH);
+    } else if (instruction.code == J_CODE || instruction.code == CALL_CODE) {
+        // Implementation: pc = lab[op1]
+        return (instruction.op1 &gt;= 0 &amp;&amp; instruction.op1 &lt; PROGRAM_LENGTH);
+    } else if (instruction.code == SB_CODE || instruction.code == LBU_CODE || instruction.code == LB_CODE) {
+        //  Implementation SB: mem[reg[op2] + op3] = reg[op1][7:0]
+        //  Implementation LB: reg[op1] = mem[reg[op2] + op3]
+        // Implementation LBU: reg[op1] = mem[reg[op2] + op3][7:0]
+        int32_t address = registers[instruction.op2] + instruction.op3;
+        return (address &gt;= 0 &amp;&amp; address &lt; MEMORY_LENGTH);
+    }  else if (instruction.code == LW_CODE || instruction.code == SW_CODE) {
+        // Implementation SW: mem[reg[op2] + op3] = reg[op1]
+        // Implementation LW: reg[op1] = mem[reg[op2] + op3]
+        int32_t address = registers[instruction.op2] + instruction.op3;
+        return (address &gt;= 0 &amp;&amp; address &lt; MEMORY_LENGTH - 4);
+    } else if (instruction.code == ADD_CODE || instruction.code == ADDI_CODE) {
+        //  Implementation ADD: reg[op1] = reg[op2] + reg[op3]
+        // Implementation ADDI: reg[op1] = reg[op2] + op3
+
+        int32_t lhs = registers[instruction.op2];
+        int32_t rhs = instruction.op3;
+        if (instruction.code == ADD_CODE) {
+            rhs = registers[instruction.op3];
+        }
+
+        // Do we overflow?
+        if (rhs &gt; 0) {
+            return rhs &lt;= (INT32_MAX - lhs);
+        } else if (rhs &lt; 0) {
+            if (lhs &gt;= 0)
+                return rhs &gt;= (INT32_MIN + lhs);
+            else
+                return rhs &lt; INT32_MIN - lhs;
+                // return rhs &gt;= (INT32_MAX + (lhs * -1));
+        }
+    }
+
+    return true;
+}
+
+const int32_t REGISTER_READ_TIME = 1;
+const int32_t REGISTER_WRITE_TIME = 1;
+const int32_t MEMORY_READ_TIME = 10;
+const int32_t MEMORY_WRITE_TIME = 10;
+
+int execution_time(int32_t code) {
+    if (code == ADDI_CODE) {
+        // Implementation: reg[op1] = reg[op2] + op3
+        return 1 * REGISTER_WRITE_TIME + 1 * REGISTER_READ_TIME;
+    } else if (code == SW_CODE) {
+        // Implementation: mem[reg[op2] + op3] = reg[op1]
+        return 1 * MEMORY_WRITE_TIME + 2 * REGISTER_READ_TIME;
+    } else if (code == LW_CODE) {
+        // Implementation: reg[op1] = mem[reg[op2] + op3]
+        return 1 * REGISTER_WRITE_TIME + 1 * REGISTER_READ_TIME + 1 * MEMORY_READ_TIME;
+    } else if (code == LUI_CODE) {
+        // Implementation: reg[op1] = op2
+        return 1 * REGISTER_WRITE_TIME;
+    } else if (code == SB_CODE) {
+        // Implementation: mem[reg[op2] + op3] = reg[op1][7:0]
+        return 1 * REGISTER_WRITE_TIME + 2 * REGISTER_READ_TIME;
+    } else if (code == J_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: pc = lab[op1]
+        return 1 * REGISTER_WRITE_TIME;
+    } else if (code == LI_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: reg[op1] = op2
+        // ADDI: reg[op1] = reg[zero] + op3
+        return 1 * REGISTER_WRITE_TIME + 1 * REGISTER_READ_TIME;
+    } else if (code == LB_CODE) {
+        // Implementation: reg[op1] = mem[reg[op2] + op3]
+        return 1 * REGISTER_WRITE_TIME + 1 * REGISTER_READ_TIME + 1 * MEMORY_READ_TIME;
+    } else if (code == BLE_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: if reg[op1] &lt;= reg[op2] then pc = lab[op3]
+        return 2 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == BEQ_CODE) {
+        // Implementation: if reg[op1] = reg[op2] then pc = lab[op3]
+        return 2 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == NOP_CODE) {
+        // Implementation: zzzZZZ
+        return 1;
+    } else if (code == ANDI_CODE) {
+        // Implementation: reg[op1] = reg[op2] &amp; op3
+        return 1 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == SLLI_CODE) {
+        // Implementation: reg[op1] = reg[op2] &lt;&lt; op3
+        return 1 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == SRAI_CODE) {
+        // Implementation: reg[op1] = reg[op2] &gt;&gt; op3
+        return 1 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == ADD_CODE) {
+        // Implementation: reg[op1] = reg[op2] + reg[op3]
+        return 2 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == LBU_CODE) {
+        // Implementation: reg[op1] = mem[reg[op2] + op3][7:0]
+        return 1 * REGISTER_WRITE_TIME + 1 * REGISTER_READ_TIME + 1 * MEMORY_READ_TIME;
+    } else if (code == BNE_CODE) {
+        // Implementation: if reg[op1] != reg[op2] then pc = lab[op3]
+        return 2 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == MV_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: reg[op1] = reg[op2]
+        // ADDI: reg[op1] = reg[op2] + 0
+        return 1 * REGISTER_WRITE_TIME + 1 * REGISTER_READ_TIME;
+    } else if (code == JR_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: pc = reg[op1]
+        return 1 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == SEQZ_CODE) {
+        // Note: This is a pseudo-instruction.
+        // Implementation: if reg[op2] == 0 then reg[op1] = 1 else reg[op1] = 0
+        return 1 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == BLT_CODE) {
+        // Implementation: if reg[op1] &lt; reg[op2] then pc = lab[op3]
+        return 3 * REGISTER_READ_TIME + 1 * REGISTER_WRITE_TIME;
+    } else if (code == CALL_CODE) {
+        return 2 * REGISTER_WRITE_TIME;
+    }
+
+    return -1;
+}</declaration>
+	<template>
+		<name>Attacker</name>
+		<parameter>int32_t rest</parameter>
+		<declaration>clock cooldown;</declaration>
+		<location id="id0" x="-994" y="-510">
+			<committed/>
+		</location>
+		<location id="id1" x="-528" y="-511">
+			<name x="-545" y="-545">READY</name>
+		</location>
+		<location id="id2" x="-332" y="-511">
+			<name x="-342" y="-545">COOLDOWN</name>
+			<label kind="invariant" x="-315" y="-502">cooldown &lt;= rest</label>
+		</location>
+		<location id="id3" x="-1130" y="-510">
+		</location>
+		<init ref="id3"/>
+		<transition id="id4">
+			<source ref="id1"/>
+			<target ref="id2"/>
+			<label kind="synchronisation" x="-485" y="-570">attack?</label>
+			<label kind="assignment" x="-485" y="-553">cooldown = 0,
+ready = false</label>
+		</transition>
+		<transition id="id5">
+			<source ref="id2"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-502" y="-451">cooldown &gt;= rest</label>
+			<label kind="assignment" x="-485" y="-434">ready = true</label>
+			<nail x="-332" y="-451"/>
+			<nail x="-528" y="-451"/>
+		</transition>
+		<transition id="id6">
+			<source ref="id3"/>
+			<target ref="id0"/>
+			<label kind="synchronisation" x="-1113" y="-552">started?</label>
+			<label kind="assignment" x="-1112" y="-534">ready = true</label>
+		</transition>
+		<transition id="id7">
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="select" x="-968" y="-671">first:  int[0, 1],
+second: int[0, 1],
+third:  int[0, 1],
+fourth: int[0, 1]</label>
+			<label kind="guard" x="-816" y="-671">first != memory[g_cardPin + 0] &amp;&amp;
+second != memory[g_cardPin + 1] &amp;&amp;
+third != memory[g_cardPin + 2] &amp;&amp;
+fourth != memory[g_cardPin + 3]</label>
+			<label kind="assignment" x="-969" y="-595">memory[g_userPin + 0] = first,
+memory[g_userPin + 1] = second,
+memory[g_userPin + 2] = third,
+memory[g_userPin + 3] = fourth</label>
+		</transition>
+	</template>
+	<template>
+		<name>RegisterCorruption</name>
+		<declaration>register_t target;</declaration>
+		<location id="id8" x="-297" y="-25">
+		</location>
+		<location id="id9" x="110" y="-25">
+			<name x="118" y="-16">FLIP</name>
+			<committed/>
+		</location>
+		<location id="id10" x="-416" y="-25">
+		</location>
+		<location id="id11" x="-110" y="-25">
+			<committed/>
+		</location>
+		<init ref="id10"/>
+		<transition id="id12">
+			<source ref="id11"/>
+			<target ref="id8"/>
+			<nail x="-110" y="8"/>
+			<nail x="-297" y="8"/>
+		</transition>
+		<transition id="id13">
+			<source ref="id8"/>
+			<target ref="id11"/>
+			<label kind="synchronisation" x="-238" y="-94">executed?</label>
+			<nail x="-297" y="-68"/>
+			<nail x="-110" y="-68"/>
+		</transition>
+		<transition id="id14">
+			<source ref="id8"/>
+			<target ref="id11"/>
+			<label kind="synchronisation" x="-238" y="-51">fetched?</label>
+		</transition>
+		<transition id="id15">
+			<source ref="id10"/>
+			<target ref="id8"/>
+			<label kind="synchronisation" x="-390" y="-50">started?</label>
+		</transition>
+		<transition id="id16">
+			<source ref="id9"/>
+			<target ref="id8"/>
+			<label kind="select" x="-280" y="34">bit: int[0, 31]</label>
+			<label kind="assignment" x="-280" y="51">registers[target] ^= 1 &lt;&lt; bit,
+remaining_flips--</label>
+			<nail x="110" y="26"/>
+			<nail x="-297" y="26"/>
+		</transition>
+		<transition id="id17">
+			<source ref="id11"/>
+			<target ref="id9"/>
+			<label kind="select" x="-92" y="-85">register: register_t</label>
+			<label kind="guard" x="-92" y="-68">remaining_flips &gt; 0 &amp;&amp; ready</label>
+			<label kind="synchronisation" x="-93" y="-102">attack!</label>
+			<label kind="assignment" x="-93" y="-51">target = register</label>
+		</transition>
+	</template>
+	<template>
+		<name>PCFlip</name>
+		<declaration>int32_t target;</declaration>
+		<location id="id18" x="-1351" y="-952">
+		</location>
+		<location id="id19" x="-960" y="-952">
+			<committed/>
+		</location>
+		<location id="id20" x="-1249" y="-952">
+			<label kind="exponentialrate" x="-1241" y="-943">1</label>
+		</location>
+		<location id="id21" x="-1249" y="-884">
+			<name x="-1292" y="-867">FLIP</name>
+			<committed/>
+		</location>
+		<init ref="id18"/>
+		<transition id="id22">
+			<source ref="id21"/>
+			<target ref="id20"/>
+		</transition>
+		<transition id="id23">
+			<source ref="id19"/>
+			<target ref="id21"/>
+			<label kind="guard" x="-1224" y="-884">target &gt; 0 &amp;&amp; target &lt; PROGRAM_LENGTH</label>
+			<label kind="assignment" x="-1224" y="-867">pc = target, remaining_flips--</label>
+			<nail x="-960" y="-884"/>
+		</transition>
+		<transition id="id24">
+			<source ref="id19"/>
+			<target ref="id20"/>
+			<label kind="guard" x="-1266" y="-1054">target &lt; 0 || target &gt;= PROGRAM_LENGTH</label>
+			<nail x="-960" y="-1028"/>
+			<nail x="-1250" y="-1029"/>
+		</transition>
+		<transition id="id25">
+			<source ref="id20"/>
+			<target ref="id19"/>
+			<label kind="select" x="-1190" y="-994">bit: int[0, 31]</label>
+			<label kind="guard" x="-1122" y="-1011">ready</label>
+			<label kind="synchronisation" x="-1190" y="-1011">attack!</label>
+			<label kind="assignment" x="-1224" y="-977">target = pc ^ (1 &lt;&lt; bit)</label>
+		</transition>
+		<transition id="id26">
+			<source ref="id18"/>
+			<target ref="id20"/>
+			<label kind="synchronisation" x="-1336" y="-974">started?</label>
+		</transition>
+	</template>
+	<template>
+		<name>InstructionSkip</name>
+		<location id="id27" x="-1419" y="-943">
+			<committed/>
+		</location>
+		<location id="id28" x="-1360" y="-943">
+		</location>
+		<location id="id29" x="-1538" y="-943">
+		</location>
+		<location id="id30" x="-1121" y="-943">
+			<committed/>
+		</location>
+		<location id="id31" x="-1011" y="-943">
+			<name x="-1002" y="-934">SKIP</name>
+			<committed/>
+		</location>
+		<init ref="id29"/>
+		<transition id="id32">
+			<source ref="id27"/>
+			<target ref="id30"/>
+			<nail x="-1419" y="-1036"/>
+			<nail x="-1121" y="-1036"/>
+		</transition>
+		<transition id="id33">
+			<source ref="id31"/>
+			<target ref="id28"/>
+			<label kind="assignment" x="-1257" y="-892">pc++, remaining_flips--</label>
+			<nail x="-1011" y="-892"/>
+			<nail x="-1359" y="-892"/>
+		</transition>
+		<transition id="id34">
+			<source ref="id30"/>
+			<target ref="id31"/>
+			<label kind="guard" x="-1096" y="-985">ready</label>
+			<label kind="synchronisation" x="-1096" y="-968">attack!</label>
+		</transition>
+		<transition id="id35">
+			<source ref="id30"/>
+			<target ref="id28"/>
+			<nail x="-1121" y="-909"/>
+			<nail x="-1359" y="-909"/>
+		</transition>
+		<transition id="id36">
+			<source ref="id28"/>
+			<target ref="id30"/>
+			<label kind="guard" x="-1342" y="-1011">remaining_flips &gt; 0 &amp;&amp;
+pc &lt; PROGRAM_LENGTH - 1</label>
+			<label kind="synchronisation" x="-1342" y="-968">executed?</label>
+		</transition>
+		<transition id="id37">
+			<source ref="id29"/>
+			<target ref="id27"/>
+			<label kind="synchronisation" x="-1512" y="-968">started?</label>
+		</transition>
+		<transition id="id38">
+			<source ref="id27"/>
+			<target ref="id28"/>
+		</transition>
+	</template>
+	<template>
+		<name>MemoryCorruption</name>
+		<declaration>address_t target;</declaration>
+		<location id="id39" x="-493" y="-536">
+			<name x="-484" y="-527">FLIP</name>
+			<committed/>
+		</location>
+		<location id="id40" x="-739" y="-536">
+			<label kind="exponentialrate" x="-756" y="-527">1</label>
+		</location>
+		<location id="id41" x="-858" y="-536">
+		</location>
+		<init ref="id41"/>
+		<transition id="id42">
+			<source ref="id39"/>
+			<target ref="id40"/>
+			<label kind="select" x="-722" y="-510">bit: int[0, 7]</label>
+			<label kind="assignment" x="-723" y="-493">memory[target] ^= 1 &lt;&lt; bit,
+remaining_flips--</label>
+			<nail x="-493" y="-451"/>
+			<nail x="-739" y="-451"/>
+		</transition>
+		<transition id="id43">
+			<source ref="id40"/>
+			<target ref="id39"/>
+			<label kind="select" x="-722" y="-595">address: address_t</label>
+			<label kind="guard" x="-722" y="-578">remaining_flips &gt; 0 &amp;&amp; ready</label>
+			<label kind="synchronisation" x="-722" y="-612">attack!</label>
+			<label kind="assignment" x="-723" y="-561">target = address</label>
+		</transition>
+		<transition id="id44">
+			<source ref="id41"/>
+			<target ref="id40"/>
+			<label kind="synchronisation" x="-832" y="-561">started?</label>
+		</transition>
+	</template>
+	<template>
+		<name>StackCorruption</name>
+		<declaration>address_t target;</declaration>
+		<location id="id45" x="-705" y="-833">
+			<name x="-697" y="-824">FLIP</name>
+			<committed/>
+		</location>
+		<location id="id46" x="-960" y="-833">
+			<label kind="exponentialrate" x="-977" y="-824">1</label>
+		</location>
+		<location id="id47" x="-1079" y="-833">
+		</location>
+		<init ref="id47"/>
+		<transition id="id48">
+			<source ref="id45"/>
+			<target ref="id46"/>
+			<label kind="select" x="-943" y="-807">bit: int[0, 7]</label>
+			<label kind="assignment" x="-944" y="-790">memory[target] ^= 1 &lt;&lt; bit,
+remaining_flips--</label>
+			<nail x="-705" y="-748"/>
+			<nail x="-960" y="-748"/>
+		</transition>
+		<transition id="id49">
+			<source ref="id46"/>
+			<target ref="id45"/>
+			<label kind="select" x="-943" y="-918">address: address_t</label>
+			<label kind="guard" x="-943" y="-901">address &gt;= registers[sp] &amp;&amp;
+remaining_flips &gt; 0 &amp;&amp; ready</label>
+			<label kind="synchronisation" x="-943" y="-935">attack!</label>
+			<label kind="assignment" x="-944" y="-858">target = address</label>
+		</transition>
+		<transition id="id50">
+			<source ref="id47"/>
+			<target ref="id46"/>
+			<label kind="synchronisation" x="-1053" y="-858">started?</label>
+		</transition>
+	</template>
+	<template>
+		<name>GlobalsCorruption</name>
+		<declaration>address_t target;</declaration>
+		<location id="id51" x="-1121" y="-825">
+		</location>
+		<location id="id52" x="-747" y="-825">
+			<name x="-739" y="-816">FLIP</name>
+			<committed/>
+		</location>
+		<location id="id53" x="-1002" y="-825">
+			<label kind="exponentialrate" x="-1020" y="-816">1</label>
+		</location>
+		<init ref="id51"/>
+		<transition id="id54">
+			<source ref="id52"/>
+			<target ref="id53"/>
+			<label kind="select" x="-985" y="-799">bit: int[0, 7]</label>
+			<label kind="assignment" x="-986" y="-782">memory[target] ^= 1 &lt;&lt; bit,
+remaining_flips--</label>
+			<nail x="-747" y="-740"/>
+			<nail x="-1002" y="-740"/>
+		</transition>
+		<transition id="id55">
+			<source ref="id53"/>
+			<target ref="id52"/>
+			<label kind="select" x="-985" y="-910">address: address_t</label>
+			<label kind="guard" x="-985" y="-893">address &lt; GLOBAL_SYMBOLS_SIZE &amp;&amp;
+remaining_flips &gt; 0 &amp;&amp; ready</label>
+			<label kind="synchronisation" x="-986" y="-926">attack!</label>
+			<label kind="assignment" x="-986" y="-850">target = address</label>
+		</transition>
+		<transition id="id56">
+			<source ref="id51"/>
+			<target ref="id53"/>
+			<label kind="synchronisation" x="-1095" y="-850">started?</label>
+		</transition>
+	</template>
+	<template>
+		<name>ObsOptimisedRegisterCorruption</name>
+		<declaration>// An optional register index which allows NONE_REGISTER.
+typedef int[-1, 31] opt_register_t;
+const opt_register_t NONE_REGISTER = -1;
+
+opt_register_t target;
+
+bool is_observable(instruction_t instruction) {
+    return instruction.code == SW_CODE || instruction.code == SB_CODE;
+}
+
+// An instruction can have at most two (2) reads from a register.
+// Examples are "ADD_CODE" and "BNE_CODE".
+const int MAX_READ_REGISTERS = 2;
+
+// An instruction can have at most a single write to a register.
+// Examples are "ANDI_CODE" and "LI_CODE"
+const int MAX_WRITE_REGISTERS = 1;
+
+// Computes the registers which an instruction reads from.
+opt_register_t res_read_registers[MAX_READ_REGISTERS];
+void read_registers(instruction_t instruction) {
+    int i;
+    for (i = 0; i &lt; MAX_READ_REGISTERS; ++i) {
+        res_read_registers[i] = NONE_REGISTER;
+    }
+
+    if (instruction.code == ADDI_CODE) {
+        // Implementation ADDI_CODE: reg[op1] = reg[op2] + op3
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == SW_CODE) {
+        // Implementation SW_CODE: mem[reg[op2] + op3] = reg[op1]
+        res_read_registers[0] = instruction.op1;
+        res_read_registers[1] = instruction.op2;
+    } else if (instruction.code == LW_CODE) {
+        // Implementation LW_CODE: reg[op1] = mem[reg[op2] + op3]
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == SB_CODE) {
+        // Implementation SB_CODE: mem[reg[op2] + op3] = reg[op1][7:0]
+        res_read_registers[0] = instruction.op1;
+        res_read_registers[1] = instruction.op2;
+    } else if (instruction.code == LB_CODE) {
+        // Implementation LB_CODE: reg[op1] = mem[reg[op2] + op3]
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == ANDI_CODE) {
+        // Implementation ANDI_CODE: reg[op1] = reg[op2] &amp; op3
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == SRAI_CODE) {
+        // Implementation SRAI_CODE: reg[op1] = reg[op2] &gt;&gt; op3
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == ADD_CODE) {
+        // Implementation ADD_CODE: reg[op1] = reg[op2] + reg[op3]
+        res_read_registers[0] = instruction.op2;
+        res_read_registers[1] = instruction.op3;
+    } else if (instruction.code == LBU_CODE) {
+        // Implementation LBU_CODE: reg[op1] = mem[reg[op2] + op3][7:0]
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == BNE_CODE) {
+        // Implementation BNE_CODE: if reg[op1] != reg[op2] then pc = lab[op3]
+        res_read_registers[0] = instruction.op1;
+        res_read_registers[1] = instruction.op2;
+    } else if (instruction.code == MV_CODE) {
+        // Implementation MV_CODE: reg[op1] = reg[op2]
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == JR_CODE) {
+        // Implementation JR_CODE: pc = reg[op1]
+        res_read_registers[0] = instruction.op1;
+    } else if (instruction.code == SEQZ_CODE) {
+        // Implementation SEQZ_CODE: if reg[op2] == 0 then reg[op1] = 1 else reg[op1] = 0
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == BLT_CODE) {
+        // Implementation BLT_CODE: if reg[op1] &lt; reg[op2] then pc = lab[op3]
+        res_read_registers[0] = instruction.op1;
+        res_read_registers[1] = instruction.op2;
+    } 
+}
+
+// Computes the registers which an instructions writes to.
+opt_register_t res_write_registers[MAX_WRITE_REGISTERS];
+void write_registers(instruction_t instruction) {
+    int i;
+    for (i = 0; i &lt; MAX_WRITE_REGISTERS; ++i) {
+        res_write_registers[i] = NONE_REGISTER;
+    }
+
+    // All of these instructions write to op1 (rd) - per RISC-V spec all instructions does.
+    if (instruction.code == ADDI_CODE ||
+            instruction.code == LW_CODE ||
+            instruction.code == LUI_CODE ||
+            instruction.code == LI_CODE ||
+            instruction.code == LB_CODE ||
+            instruction.code == BLE_CODE ||
+            instruction.code == BEQ_CODE ||
+            instruction.code == ANDI_CODE ||
+            instruction.code == SLLI_CODE ||
+            instruction.code == SRAI_CODE ||
+            instruction.code == ADD_CODE ||
+            instruction.code == LBU_CODE ||
+            instruction.code == MV_CODE ||
+            instruction.code == SEQZ_CODE ||
+            instruction.code == CALL_CODE) {
+        // Implementation ADDI_CODE: reg[op1] = reg[op2] + op3
+        // Implementation LW_CODE: reg[op1] = mem[reg[op2] + op3]
+        // Implementation LUI_CODE: reg[op1] = op2
+        // Implementation LI_CODE: reg[op1] = op2
+        // Implementation LB_CODE: reg[op1] = mem[reg[op2] + op3]
+        // Implementation BLE_CODE: if reg[op1] &lt;= reg[op2] then pc = lab[op3]
+        // Implementation BEQ_CODE: if reg[op1] = reg[op2] then pc = lab[op3]
+        // Implementation ANDI_CODE: reg[op1] = reg[op2] &amp; op3
+        // Implementation SLLI_CODE: reg[op1] = reg[op2] &lt;&lt; op3
+        // Implementation SRAI_CODE: reg[op1] = reg[op2] &gt;&gt; op3
+        // Implementation ADD_CODE: reg[op1] = reg[op2] + reg[op3]
+        // Implementation LBU_CODE: reg[op1] = mem[reg[op2] + op3][7:0]
+        // Implementation MV_CODE: reg[op1] = reg[op2]
+        // Implementation SEQZ_CODE: if reg[op2] == 0 then reg[op1] = 1 else reg[op1] = 0
+        res_write_registers[0] = instruction.op1;
+    }
+}
+
+bool is_write(register_t register) {
+    int i;
+    for (i = 0; i &lt; MAX_WRITE_REGISTERS; ++i) {
+        if (res_write_registers[i] == register) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool is_read(register_t register) {
+    int i;
+    for (i = 0; i &lt; MAX_READ_REGISTERS; ++i) {
+        if (res_read_registers[i] == register) {
+            return true;
+        }
+    }
+    return false;
+}</declaration>
+		<location id="id57" x="-1266" y="-739">
+		</location>
+		<location id="id58" x="-1130" y="-739">
+		</location>
+		<location id="id59" x="-884" y="-740">
+			<name x="-867" y="-732">Flip</name>
+			<committed/>
+		</location>
+		<location id="id60" x="-884" y="-833">
+			<committed/>
+		</location>
+		<location id="id61" x="-1079" y="-833">
+			<name x="-1096" y="-875">WAIT</name>
+			<label kind="exponentialrate" x="-1071" y="-824">1</label>
+		</location>
+		<init ref="id57"/>
+		<transition id="id62">
+			<source ref="id61"/>
+			<target ref="id58"/>
+		</transition>
+		<transition id="id63">
+			<source ref="id61"/>
+			<target ref="id60"/>
+			<label kind="guard" x="-1062" y="-858">remaining_flips &gt; 0</label>
+		</transition>
+		<transition id="id64">
+			<source ref="id60"/>
+			<target ref="id59"/>
+			<label kind="guard" x="-875" y="-803">ready</label>
+			<label kind="synchronisation" x="-875" y="-790">attack!</label>
+		</transition>
+		<transition id="id65">
+			<source ref="id60"/>
+			<target ref="id58"/>
+			<label kind="guard" x="-1003" y="-790">!ready</label>
+		</transition>
+		<transition id="id66">
+			<source ref="id58"/>
+			<target ref="id61"/>
+			<label kind="guard" x="-1317" y="-858">is_observable(instruction)</label>
+			<label kind="synchronisation" x="-1317" y="-875">executed?</label>
+			<nail x="-1317" y="-833"/>
+		</transition>
+		<transition id="id67">
+			<source ref="id59"/>
+			<target ref="id58"/>
+			<label kind="select" x="-1105" y="-731">register: register_t,
+bit: int[0, 31]</label>
+			<label kind="assignment" x="-1105" y="-688">registers[register] ^= 1 &lt;&lt; bit,
+remaining_flips--</label>
+		</transition>
+		<transition id="id68">
+			<source ref="id57"/>
+			<target ref="id58"/>
+			<label kind="synchronisation" x="-1232" y="-756">started?</label>
+		</transition>
+	</template>
+	<template>
+		<name>OptimisedRegisterCorruption</name>
+		<declaration>// An optional register index which allows NONE_REGISTER.
+typedef int[-1, 31] opt_register_t;
+const opt_register_t NONE_REGISTER = -1;
+
+opt_register_t target;
+
+// An instruction can have at most two (2) reads from a register.
+// Examples are "ADD_CODE" and "BNE_CODE".
+const int MAX_READ_REGISTERS = 2;
+
+// An instruction can have at most a single write to a register.
+// Examples are "ANDI_CODE" and "LI_CODE"
+const int MAX_WRITE_REGISTERS = 1;
+
+// Computes the registers which an instruction reads from.
+opt_register_t res_read_registers[MAX_READ_REGISTERS];
+void read_registers(instruction_t instruction) {
+    int i;
+    for (i = 0; i &lt; MAX_READ_REGISTERS; ++i) {
+        res_read_registers[i] = NONE_REGISTER;
+    }
+
+    if (instruction.code == ADDI_CODE) {
+        // Implementation ADDI_CODE: reg[op1] = reg[op2] + op3
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == SW_CODE) {
+        // Implementation SW_CODE: mem[reg[op2] + op3] = reg[op1]
+        res_read_registers[0] = instruction.op1;
+        res_read_registers[1] = instruction.op2;
+    } else if (instruction.code == LW_CODE) {
+        // Implementation LW_CODE: reg[op1] = mem[reg[op2] + op3]
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == SB_CODE) {
+        // Implementation SB_CODE: mem[reg[op2] + op3] = reg[op1][7:0]
+        res_read_registers[0] = instruction.op1;
+        res_read_registers[1] = instruction.op2;
+    } else if (instruction.code == LB_CODE) {
+        // Implementation LB_CODE: reg[op1] = mem[reg[op2] + op3]
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == ANDI_CODE) {
+        // Implementation ANDI_CODE: reg[op1] = reg[op2] &amp; op3
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == SRAI_CODE) {
+        // Implementation SRAI_CODE: reg[op1] = reg[op2] &gt;&gt; op3
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == ADD_CODE) {
+        // Implementation ADD_CODE: reg[op1] = reg[op2] + reg[op3]
+        res_read_registers[0] = instruction.op2;
+        res_read_registers[1] = instruction.op3;
+    } else if (instruction.code == LBU_CODE) {
+        // Implementation LBU_CODE: reg[op1] = mem[reg[op2] + op3][7:0]
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == BNE_CODE) {
+        // Implementation BNE_CODE: if reg[op1] != reg[op2] then pc = lab[op3]
+        res_read_registers[0] = instruction.op1;
+        res_read_registers[1] = instruction.op2;
+    } else if (instruction.code == MV_CODE) {
+        // Implementation MV_CODE: reg[op1] = reg[op2]
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == JR_CODE) {
+        // Implementation JR_CODE: pc = reg[op1]
+        res_read_registers[0] = instruction.op1;
+    } else if (instruction.code == SEQZ_CODE) {
+        // Implementation SEQZ_CODE: if reg[op2] == 0 then reg[op1] = 1 else reg[op1] = 0
+        res_read_registers[0] = instruction.op2;
+    } else if (instruction.code == BLT_CODE) {
+        // Implementation BLT_CODE: if reg[op1] &lt; reg[op2] then pc = lab[op3]
+        res_read_registers[0] = instruction.op1;
+        res_read_registers[1] = instruction.op2;
+    } 
+}
+
+// Computes the registers which an instructions writes to.
+opt_register_t res_write_registers[MAX_WRITE_REGISTERS];
+void write_registers(instruction_t instruction) {
+    int i;
+    for (i = 0; i &lt; MAX_WRITE_REGISTERS; ++i) {
+        res_write_registers[i] = NONE_REGISTER;
+    }
+
+    // All of these instructions write to op1 (rd) - per RISC-V spec all instructions does.
+    if (instruction.code == ADDI_CODE ||
+            instruction.code == LW_CODE ||
+            instruction.code == LUI_CODE ||
+            instruction.code == LI_CODE ||
+            instruction.code == LB_CODE ||
+            instruction.code == BLE_CODE ||
+            instruction.code == BEQ_CODE ||
+            instruction.code == ANDI_CODE ||
+            instruction.code == SLLI_CODE ||
+            instruction.code == SRAI_CODE ||
+            instruction.code == ADD_CODE ||
+            instruction.code == LBU_CODE ||
+            instruction.code == MV_CODE ||
+            instruction.code == SEQZ_CODE ||
+            instruction.code == CALL_CODE) {
+        // Implementation ADDI_CODE: reg[op1] = reg[op2] + op3
+        // Implementation LW_CODE: reg[op1] = mem[reg[op2] + op3]
+        // Implementation LUI_CODE: reg[op1] = op2
+        // Implementation LI_CODE: reg[op1] = op2
+        // Implementation LB_CODE: reg[op1] = mem[reg[op2] + op3]
+        // Implementation BLE_CODE: if reg[op1] &lt;= reg[op2] then pc = lab[op3]
+        // Implementation BEQ_CODE: if reg[op1] = reg[op2] then pc = lab[op3]
+        // Implementation ANDI_CODE: reg[op1] = reg[op2] &amp; op3
+        // Implementation SLLI_CODE: reg[op1] = reg[op2] &lt;&lt; op3
+        // Implementation SRAI_CODE: reg[op1] = reg[op2] &gt;&gt; op3
+        // Implementation ADD_CODE: reg[op1] = reg[op2] + reg[op3]
+        // Implementation LBU_CODE: reg[op1] = mem[reg[op2] + op3][7:0]
+        // Implementation MV_CODE: reg[op1] = reg[op2]
+        // Implementation SEQZ_CODE: if reg[op2] == 0 then reg[op1] = 1 else reg[op1] = 0
+        res_write_registers[0] = instruction.op1;
+    }
+}
+
+bool is_write(register_t register) {
+    int i;
+    for (i = 0; i &lt; MAX_WRITE_REGISTERS; ++i) {
+        if (res_write_registers[i] == register) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool is_read(register_t register) {
+    int i;
+    for (i = 0; i &lt; MAX_READ_REGISTERS; ++i) {
+        if (res_read_registers[i] == register) {
+            return true;
+        }
+    }
+    return false;
+}</declaration>
+		<location id="id69" x="-1521" y="-484">
+		</location>
+		<location id="id70" x="-1385" y="-484">
+		</location>
+		<location id="id71" x="-1181" y="-407">
+			<committed/>
+		</location>
+		<location id="id72" x="-985" y="-484">
+			<name x="-977" y="-476">Flip</name>
+			<committed/>
+		</location>
+		<location id="id73" x="-1181" y="-577">
+			<committed/>
+		</location>
+		<init ref="id69"/>
+		<transition id="id74">
+			<source ref="id71"/>
+			<target ref="id72"/>
+			<label kind="select" x="-1164" y="-382">register: register_t</label>
+			<label kind="guard" x="-1164" y="-365">is_read(register) &amp;&amp; ready</label>
+			<label kind="synchronisation" x="-1164" y="-403">attack!</label>
+			<label kind="assignment" x="-1165" y="-344">target = register</label>
+			<nail x="-985" y="-407"/>
+		</transition>
+		<transition id="id75">
+			<source ref="id73"/>
+			<target ref="id72"/>
+			<label kind="select" x="-1156" y="-637">register: register_t</label>
+			<label kind="guard" x="-1156" y="-620">is_write(register) &amp;&amp; ready</label>
+			<label kind="synchronisation" x="-1156" y="-654">attack!</label>
+			<label kind="assignment" x="-1156" y="-603">target = register</label>
+			<nail x="-985" y="-577"/>
+		</transition>
+		<transition id="id76">
+			<source ref="id73"/>
+			<target ref="id70"/>
+		</transition>
+		<transition id="id77">
+			<source ref="id70"/>
+			<target ref="id73"/>
+			<label kind="guard" x="-1351" y="-620">remaining_flips &gt; 0</label>
+			<label kind="synchronisation" x="-1436" y="-620">executed?</label>
+			<label kind="assignment" x="-1428" y="-603">write_registers(instruction)</label>
+			<nail x="-1385" y="-577"/>
+		</transition>
+		<transition id="id78">
+			<source ref="id72"/>
+			<target ref="id70"/>
+			<label kind="select" x="-1207" y="-544">bit: int[0, 31]</label>
+			<label kind="assignment" x="-1275" y="-527">registers[target] ^= 1 &lt;&lt; bit,
+remaining_flips--</label>
+		</transition>
+		<transition id="id79">
+			<source ref="id71"/>
+			<target ref="id70"/>
+		</transition>
+		<transition id="id80">
+			<source ref="id70"/>
+			<target ref="id71"/>
+			<label kind="guard" x="-1368" y="-399">remaining_flips &gt; 0</label>
+			<label kind="synchronisation" x="-1444" y="-399">fetched?</label>
+			<label kind="assignment" x="-1444" y="-382">read_registers(instruction)</label>
+			<nail x="-1385" y="-407"/>
+		</transition>
+		<transition id="id81">
+			<source ref="id69"/>
+			<target ref="id70"/>
+			<label kind="synchronisation" x="-1487" y="-501">started?</label>
+		</transition>
+	</template>
+	<template>
+		<name x="5" y="5">VM</name>
+		<declaration>// Automatically generated.
+
+clock runtime; // Used to control the time an instruction takes to execute.
+clock total_time;
+
+void setup() {
+    instruction_t line_0 = { ADDI_CODE, sp, sp, -32 }; // verifyPIN
+instruction_t line_1 = { SW_CODE, ra, sp, 28 }; 
+instruction_t line_2 = { SW_CODE, s0, sp, 24 }; 
+instruction_t line_3 = { ADDI_CODE, s0, sp, 32 }; 
+instruction_t line_4 = { LUI_CODE, a5, symbol_high(g_authenticated), 0 }; 
+instruction_t line_5 = { LI_CODE, a4, 85, 0 }; 
+instruction_t line_6 = { SB_CODE, a4, a5, symbol_low(g_authenticated) }; 
+instruction_t line_7 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
+instruction_t line_8 = { LB_CODE, a5, a5, symbol_low(g_ptc) }; 
+instruction_t line_9 = { BLE_CODE, a5, zero, L2 }; 
+instruction_t line_10 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
+instruction_t line_11 = { LB_CODE, a5, a5, symbol_low(g_ptc) }; 
+instruction_t line_12 = { ANDI_CODE, a5, a5, 255 }; 
+instruction_t line_13 = { ADDI_CODE, a5, a5, -1 }; 
+instruction_t line_14 = { ANDI_CODE, a5, a5, 255 }; 
+instruction_t line_15 = { SLLI_CODE, a4, a5, 24 }; 
+instruction_t line_16 = { SRAI_CODE, a4, a4, 24 }; 
+instruction_t line_17 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
+instruction_t line_18 = { SB_CODE, a4, a5, symbol_low(g_ptc) }; 
+instruction_t line_19 = { LI_CODE, a5, 85, 0 }; 
+instruction_t line_20 = { SB_CODE, a5, s0, -21 }; 
+instruction_t line_21 = { LI_CODE, a5, 85, 0 }; 
+instruction_t line_22 = { SB_CODE, a5, s0, -22 }; 
+instruction_t line_23 = { SW_CODE, zero, s0, -20 }; 
+instruction_t line_24 = { J_CODE, L3, 0, 0 }; 
+instruction_t line_25 = { LUI_CODE, a5, symbol_high(g_userPin), 0 }; // L5
+instruction_t line_26 = { ADDI_CODE, a4, a5, symbol_low(g_userPin) }; 
+instruction_t line_27 = { LW_CODE, a5, s0, -20 }; 
+instruction_t line_28 = { ADD_CODE, a5, a4, a5 }; 
+instruction_t line_29 = { LBU_CODE, a4, a5, 0 }; 
+instruction_t line_30 = { LUI_CODE, a5, symbol_high(g_cardPin), 0 }; 
+instruction_t line_31 = { ADDI_CODE, a3, a5, symbol_low(g_cardPin) }; 
+instruction_t line_32 = { LW_CODE, a5, s0, -20 }; 
+instruction_t line_33 = { ADD_CODE, a5, a3, a5 }; 
+instruction_t line_34 = { LBU_CODE, a5, a5, 0 }; 
+instruction_t line_35 = { BEQ_CODE, a4, a5, L4 }; 
+instruction_t line_36 = { LI_CODE, a5, -86, 0 }; 
+instruction_t line_37 = { SB_CODE, a5, s0, -22 }; 
+instruction_t line_38 = { LW_CODE, a5, s0, -20 }; // L4
+instruction_t line_39 = { ADDI_CODE, a5, a5, 1 }; 
+instruction_t line_40 = { SW_CODE, a5, s0, -20 }; 
+instruction_t line_41 = { LW_CODE, a4, s0, -20 }; // L3
+instruction_t line_42 = { LI_CODE, a5, 3, 0 }; 
+instruction_t line_43 = { BLE_CODE, a4, a5, L5 }; 
+instruction_t line_44 = { LW_CODE, a4, s0, -20 }; 
+instruction_t line_45 = { LI_CODE, a5, 4, 0 }; 
+instruction_t line_46 = { BEQ_CODE, a4, a5, L6 }; 
+instruction_t line_47 = { LUI_CODE, a5, symbol_high(g_countermeasure), 0 }; 
+instruction_t line_48 = { LI_CODE, a4, 1, 0 }; 
+instruction_t line_49 = { SB_CODE, a4, a5, symbol_low(g_countermeasure) }; 
+instruction_t line_50 = { NOP_CODE, 0, 0, 0 }; 
+instruction_t line_51 = { LBU_CODE, a4, s0, -22 }; // L6
+instruction_t line_52 = { LI_CODE, a5, 85, 0 }; 
+instruction_t line_53 = { BNE_CODE, a4, a5, L7 }; 
+instruction_t line_54 = { LBU_CODE, a4, s0, -22 }; 
+instruction_t line_55 = { LI_CODE, a5, 85, 0 }; 
+instruction_t line_56 = { BNE_CODE, a4, a5, L8 }; 
+instruction_t line_57 = { LI_CODE, a5, -86, 0 }; 
+instruction_t line_58 = { SB_CODE, a5, s0, -21 }; 
+instruction_t line_59 = { J_CODE, L9, 0, 0 }; 
+instruction_t line_60 = { LUI_CODE, a5, symbol_high(g_countermeasure), 0 }; // L8
+instruction_t line_61 = { LI_CODE, a4, 1, 0 }; 
+instruction_t line_62 = { SB_CODE, a4, a5, symbol_low(g_countermeasure) }; 
+instruction_t line_63 = { J_CODE, L9, 0, 0 }; 
+instruction_t line_64 = { LI_CODE, a5, 85, 0 }; // L7
+instruction_t line_65 = { SB_CODE, a5, s0, -21 }; 
+instruction_t line_66 = { LBU_CODE, a4, s0, -21 }; // L9
+instruction_t line_67 = { LI_CODE, a5, 170, 0 }; 
+instruction_t line_68 = { BNE_CODE, a4, a5, L2 }; 
+instruction_t line_69 = { LBU_CODE, a4, s0, -21 }; 
+instruction_t line_70 = { LI_CODE, a5, 170, 0 }; 
+instruction_t line_71 = { BNE_CODE, a4, a5, L10 }; 
+instruction_t line_72 = { LUI_CODE, a5, symbol_high(g_ptc), 0 }; 
+instruction_t line_73 = { LI_CODE, a4, 3, 0 }; 
+instruction_t line_74 = { SB_CODE, a4, a5, symbol_low(g_ptc) }; 
+instruction_t line_75 = { LUI_CODE, a5, symbol_high(g_authenticated), 0 }; 
+instruction_t line_76 = { LI_CODE, a4, -86, 0 }; 
+instruction_t line_77 = { SB_CODE, a4, a5, symbol_low(g_authenticated) }; 
+instruction_t line_78 = { LI_CODE, a5, 170, 0 }; 
+instruction_t line_79 = { J_CODE, L11, 0, 0 }; 
+instruction_t line_80 = { LUI_CODE, a5, symbol_high(g_countermeasure), 0 }; // L10
+instruction_t line_81 = { LI_CODE, a4, 1, 0 }; 
+instruction_t line_82 = { SB_CODE, a4, a5, symbol_low(g_countermeasure) }; 
+instruction_t line_83 = { NOP_CODE, 0, 0, 0 }; 
+instruction_t line_84 = { LI_CODE, a5, 85, 0 }; // L2
+instruction_t line_85 = { MV_CODE, a0, a5, 0 }; // L11
+instruction_t line_86 = { LW_CODE, ra, sp, 28 }; 
+instruction_t line_87 = { LW_CODE, s0, sp, 24 }; 
+instruction_t line_88 = { ADDI_CODE, sp, sp, 32 }; 
+program[0] = line_0;
+program[1] = line_1;
+program[2] = line_2;
+program[3] = line_3;
+program[4] = line_4;
+program[5] = line_5;
+program[6] = line_6;
+program[7] = line_7;
+program[8] = line_8;
+program[9] = line_9;
+program[10] = line_10;
+program[11] = line_11;
+program[12] = line_12;
+program[13] = line_13;
+program[14] = line_14;
+program[15] = line_15;
+program[16] = line_16;
+program[17] = line_17;
+program[18] = line_18;
+program[19] = line_19;
+program[20] = line_20;
+program[21] = line_21;
+program[22] = line_22;
+program[23] = line_23;
+program[24] = line_24;
+program[25] = line_25;
+program[26] = line_26;
+program[27] = line_27;
+program[28] = line_28;
+program[29] = line_29;
+program[30] = line_30;
+program[31] = line_31;
+program[32] = line_32;
+program[33] = line_33;
+program[34] = line_34;
+program[35] = line_35;
+program[36] = line_36;
+program[37] = line_37;
+program[38] = line_38;
+program[39] = line_39;
+program[40] = line_40;
+program[41] = line_41;
+program[42] = line_42;
+program[43] = line_43;
+program[44] = line_44;
+program[45] = line_45;
+program[46] = line_46;
+program[47] = line_47;
+program[48] = line_48;
+program[49] = line_49;
+program[50] = line_50;
+program[51] = line_51;
+program[52] = line_52;
+program[53] = line_53;
+program[54] = line_54;
+program[55] = line_55;
+program[56] = line_56;
+program[57] = line_57;
+program[58] = line_58;
+program[59] = line_59;
+program[60] = line_60;
+program[61] = line_61;
+program[62] = line_62;
+program[63] = line_63;
+program[64] = line_64;
+program[65] = line_65;
+program[66] = line_66;
+program[67] = line_67;
+program[68] = line_68;
+program[69] = line_69;
+program[70] = line_70;
+program[71] = line_71;
+program[72] = line_72;
+program[73] = line_73;
+program[74] = line_74;
+program[75] = line_75;
+program[76] = line_76;
+program[77] = line_77;
+program[78] = line_78;
+program[79] = line_79;
+program[80] = line_80;
+program[81] = line_81;
+program[82] = line_82;
+program[83] = line_83;
+program[84] = line_84;
+program[85] = line_85;
+program[86] = line_86;
+program[87] = line_87;
+program[88] = line_88;
+
+    memory[0] = 0; // 0'it byte of g_countermeasure
+memory[1] = 3; // 0'it byte of g_ptc
+memory[2] = 0; // 0'it byte of g_authenticated
+memory[3] = 0; // 0'it byte of g_userPin
+memory[4] = 0; // 1'it byte of g_userPin
+memory[5] = 0; // 2'it byte of g_userPin
+memory[6] = 0; // 3'it byte of g_userPin
+memory[7] = 1; // 0'it byte of g_cardPin
+memory[8] = 1; // 1'it byte of g_cardPin
+memory[9] = 1; // 2'it byte of g_cardPin
+memory[10] = 1; // 3'it byte of g_cardPin
+
+    // Init Stack Pointer (SP) and Program Counter (PC).
+    registers[sp] = MEMORY_LENGTH - 1;
+    pc = 0;
+}</declaration>
+		<location id="id82" x="-1598" y="-1232">
+			<name x="-1581" y="-1241">FETCHING</name>
+			<urgent/>
+		</location>
+		<location id="id83" x="-1377" y="-1232">
+			<name x="-1470" y="-1241">EXECUTING</name>
+			<label kind="invariant" x="-1360" y="-1232">runtime &lt;= execution_time(instruction.code)</label>
+		</location>
+		<location id="id84" x="-1836" y="-1164">
+			<name x="-1853" y="-1148">DONE</name>
+		</location>
+		<location id="id85" x="-1121" y="-1299">
+			<name x="-1130" y="-1282">ERR</name>
+		</location>
+		<location id="id86" x="-1717" y="-1232">
+			<committed/>
+		</location>
+		<init ref="id86"/>
+		<transition id="id87" controllable="false">
+			<source ref="id86"/>
+			<target ref="id82"/>
+			<label kind="synchronisation" x="-1693" y="-1258">started!</label>
+			<label kind="assignment" x="-1692" y="-1275">setup()</label>
+		</transition>
+		<transition id="id88" controllable="false">
+			<source ref="id83"/>
+			<target ref="id85"/>
+			<label kind="guard" x="-1317" y="-1342">!valid_instruction()</label>
+			<label kind="synchronisation" x="-1317" y="-1325">failed!</label>
+			<nail x="-1334" y="-1300"/>
+		</transition>
+		<transition id="id89" controllable="false">
+			<source ref="id82"/>
+			<target ref="id84"/>
+			<label kind="guard" x="-1802" y="-1164">pc == PROGRAM_LENGTH</label>
+			<label kind="synchronisation" x="-1802" y="-1147">finished!</label>
+			<nail x="-1623" y="-1164"/>
+		</transition>
+		<transition id="id90" controllable="false">
+			<source ref="id83"/>
+			<target ref="id82"/>
+			<label kind="guard" x="-1581" y="-1189">valid_instruction() &amp;&amp;
+runtime &gt;= execution_time(instruction.code)</label>
+			<label kind="synchronisation" x="-1581" y="-1130">executed!</label>
+			<label kind="assignment" x="-1581" y="-1147">execute()</label>
+			<nail x="-1377" y="-1190"/>
+			<nail x="-1598" y="-1190"/>
+		</transition>
+		<transition id="id91" controllable="false">
+			<source ref="id82"/>
+			<target ref="id83"/>
+			<label kind="guard" x="-1589" y="-1335">pc &lt; PROGRAM_LENGTH</label>
+			<label kind="synchronisation" x="-1589" y="-1301">fetched!</label>
+			<label kind="assignment" x="-1589" y="-1318">fetch(), runtime = 0</label>
+			<nail x="-1598" y="-1275"/>
+			<nail x="-1377" y="-1275"/>
+		</transition>
+	</template>
+	<system>vm = VM();
+attacker = Attacker(100);
+rc = RegisterCorruption();
+pcf = PCFlip();
+is = InstructionSkip();
+mc = MemoryCorruption();
+sc = StackCorruption();
+gc = GlobalsCorruption();
+oorc = ObsOptimisedRegisterCorruption();
+orc = OptimisedRegisterCorruption();
+system vm , is, attacker;
+</system>
+	<queries>
+		<option key="--diagnostic" value="0"/>
+		<query>
+			<formula>// Goes through all paths and checks if they reach DONE or ERR.</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>A&lt;&gt; vm.DONE || vm.ERR</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.DONE</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.ERR</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula>bounds{vm.DONE || vm.ERR}: vm.total_time</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula>// SMC Queries</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>Pr[&lt;=10000; 1000] (&lt;&gt; vm.DONE)</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>Pr[&lt;=10000; 1000] (&lt;&gt; vm.DONE || vm.ERR)</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>Pr[&lt;=10000; 10000] (&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_authenticated) == 170 &amp;&amp; remaining_flips &lt; MAX_FLIPS)</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>simulate[&lt;=4000; 10000] {remaining_flips, vm.DONE &amp;&amp; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_authenticated) == 170} : vm.DONE &amp;&amp; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_authenticated) == 170 &amp;&amp; remaining_flips &lt; MAX_FLIPS</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula>// The attacker remains undetected at all time.</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>strategy Undetected = control: A[] mem_u8(g_countermeasure) == 0 &amp;&amp; ((vm.DONE || vm.ERR) imply remaining_flips &lt; MAX_FLIPS)
+</formula>
+			<comment>Pure safety: "control: A[] not(lose)" &lt;=&gt; "control: A[] win"</comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170 under Undetected</formula>
+			<comment>Is it possible to be authenticated and not crash the VM whilst staying undetected?</comment>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula>// The VM finishes the execution and ends in DONE whilst the attacker gets authenticated.</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>strategy Access = control: A&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170 &amp;&amp; remaining_flips &lt; MAX_FLIPS
+</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_ptc) &gt;= 3 under Access</formula>
+			<comment>Is it possible to gain undetected access and increase ptc?</comment>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula>// The attacker can gain undetected access.</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>strategy UndetectedAccess = control: A&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_authenticated) == 170 &amp;&amp; remaining_flips &lt; MAX_FLIPS
+</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_ptc) &gt;= 3 under UndetectedAccess</formula>
+			<comment>Is it possible to not crash the VM and gain undetected access and increase ptc?</comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt; !vm.ERR under UndetectedAccess</formula>
+			<comment>Is it not possible to crash the VM under a strategy which guarantees that every execution finishes and provides undetected access?</comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt; mem_u8(g_ptc) &gt;= 3 under UndetectedAccess</formula>
+			<comment>Is it possible to increase ptc whilst gaining undetected access?</comment>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula>// The attacker will always be undected and may gain access</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>strategy WeakUndectedAccess = control: A[mem_u8(g_countermeasure) == 0 &amp;&amp; ((vm.DONE || vm.ERR) imply remaining_flips == 0) W (mem_u8(g_countermeasure) == 0  &amp;&amp; ((vm.DONE || vm.ERR) imply remaining_flips == 0) &amp;&amp; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170)]</formula>
+			<comment>"q RELEASE p" &lt;=&gt; "p WEAK (q &amp;&amp; p)"
+
+In my own words: "p has to holds atleast until p and q, or p must remain true forever" - In other words: "The attacker either stays undetected forever or gains undetected access at some point".
+
+Release ("q RELEASE p"): "p" has to be true until and including the point where "q" first becomes true; if "q" never becomes true, "p" must remain true forever.</comment>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_authenticated) == 170</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; mem_u8(g_ptc) &gt;= 3 under WeakUndectedAccess</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.ERR under WeakUndectedAccess</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.DONE under WeakUndectedAccess</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula>// The attacker never crashes the VM.</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>strategy NoCrash = control: A[] !vm.ERR</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula>E&lt;&gt; vm.DONE &amp;&amp; mem_u8(g_countermeasure) == 0 &amp;&amp; mem_u8(g_authenticated) == 170 under NoCrash</formula>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+		<query>
+			<formula/>
+			<comment/>
+		</query>
+	</queries>
+</nta>
