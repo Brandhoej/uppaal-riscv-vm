@@ -28,7 +28,7 @@ To run the experiments detached with a name one can run
 ```console
 ./experiments/nohup_run_experiment.sh <REQUIRED:EXPERIMENT_COMMAND> <OPTIONAL:PROCESS_NAME:DEFAULT("EXPERIMENT")> <OPTIONAL:LOG_OUTPUT_PATH> <$@:ADDITIONAL_EXPERIMENT_COMMAND_ARGS>
 
-# Example (With loggin)
+# Example (With logging)
 ./experiments/nohup_run_experiment.sh "./experiments/run_smc_experiments_LARGE_ORC.sh" "SMC_LARGE" "SMC_LARGE.out" "./experiments/results/smc"
 ./experiments/nohup_run_experiment.sh "./experiments/run_symbolic_experiments.sh" "SYMBOLIC_EXPERIMENTS" "SYMBOLIC.out" "./experiments/results/symbolic"
 
