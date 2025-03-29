@@ -1,0 +1,22 @@
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1743098139
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/results/reachability-symbolic/VerifyPIN_0/VerifyPIN_0--F2-C100--IS--query.q:1
+ -- Formula is satisfied.
+ -- States explored : 0 states
+ -- CPU user time used : 58 ms
+ -- Virtual memory used : 61148 KiB
+ -- Resident memory used : 18288 KiB
+
+Verifying formula 2 at ./experiments/results/reachability-symbolic/VerifyPIN_0/VerifyPIN_0--F2-C100--IS--query.q:2
+ -- Formula is satisfied.
+ -- States stored : 1692 states
+ -- States explored : 1705 states
+ -- CPU user time used : 10 ms
+ -- Virtual memory used : 65968 KiB
+ -- Resident memory used : 22128 KiB

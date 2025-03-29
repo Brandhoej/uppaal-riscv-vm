@@ -1,0 +1,9 @@
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1743210243
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/results/reachability-symbolic/VerifyPIN_3_HB+FTL+INL/VerifyPIN_3_HB+FTL+INL--F4--C100--ORC--query.q:1
