@@ -1,0 +1,16 @@
+Options for the verification:
+  Generating no trace
+  Search order is breadth first
+  Using conservative space optimisation
+  Seed is 1743289283
+  State space representation uses minimal constraint systems with future testing
+  Using HashMap + Compress integers for discrete state storage
+
+Verifying formula 1 at ./experiments/results/smc-vm-crash/VerifyPIN_5_HB+FTL+DPTC+DC/VerifyPIN_5_HB+FTL+DPTC+DC--F4--C100--T10000--N4000000--ORC--query.q:1
+ -- Formula is satisfied.
+ -- Result: (70170/4000000 runs) Pr(<> …) in [0.0174141,0.0176716] (95% CI)
+Values in [80,5409] mean=675.61819866039616 steps=20.109433962264152: 218 0 0 0 0 0 0 0 0 14016 0 0 0 0 0 141 13093 3351 2634 0 0 0 344 823 5 1 0 0 0 34 0 0 0 0 0 0 30373 0 0 0 0 0 0 691 329 1251 0 0 0 0 685 15 66 0 0 0 0 8 1 11 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 681 0 0 0 0 0 0 0 0 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 48 637 0 0 0 0 0 0 0 0 1 3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 688 16 0 0 0 0 0 0 0 0 0 2
+ -- States explored : 0 states
+ -- CPU user time used : 958138 ms
+ -- Virtual memory used : 57944 KiB
+ -- Resident memory used : 17580 KiB
